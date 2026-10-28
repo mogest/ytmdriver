@@ -30,6 +30,14 @@ func (m *model) libraryKey(key, text string) {
 		m.cursor--
 	case key == "down" || key == "j" && !m.filtering:
 		m.cursor++
+	case key == "pgup" || key == "ctrl+b":
+		m.cursor -= m.rows()
+	case key == "pgdown" || key == "ctrl+f":
+		m.cursor += m.rows()
+	case key == "g" && !m.filtering:
+		m.cursor = 0
+	case key == "G" && !m.filtering:
+		m.cursor = len(m.visible())
 	case key == "enter":
 		if visible := m.visible(); m.cursor < len(visible) {
 			m.send("play_item", map[string]any{"kind": m.kind, "key": visible[m.cursor].Key})
@@ -66,6 +74,10 @@ func (m *model) libraryKey(key, text string) {
 	m.cursor = min(max(m.cursor, 0), max(len(m.visible())-1, 0))
 }
 
+func (m model) rows() int {
+	return max(m.height-5, 1)
+}
+
 func (m model) libraryView() []string {
 	var tabs []string
 	for _, kind := range libraryKinds {
@@ -87,7 +99,7 @@ func (m model) libraryView() []string {
 		lines = append(lines, "")
 	}
 
-	rows := max(m.height-5, 1)
+	rows := m.rows()
 	visible := m.visible()
 	if _, loaded := m.items[m.kind]; loaded && len(visible) == 0 {
 		lines = append(lines, style.faint.Render(" Nothing matches"))
@@ -107,7 +119,7 @@ func (m model) libraryView() []string {
 	}
 
 	if m.filtering {
-		return append(lines, "", help("↑/↓", "move", "enter", "play", "←/→", "playlists/albums", "esc", "clear"))
+		return append(lines, "", help("↑/↓", "move", "pgup/pgdn", "page", "enter", "play", "←/→", "playlists/albums", "esc", "clear"))
 	}
-	return append(lines, "", help("j/k", "move", "h/l", "playlists/albums", "enter", "play", "/", "filter", "esc", "back"))
+	return append(lines, "", help("j/k", "move", "^b/^f", "page", "h/l", "playlists/albums", "enter", "play", "/", "filter", "esc", "back"))
 }
