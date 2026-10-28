@@ -58,7 +58,8 @@ Commands for scripting:
 
 ```
 ytm play | pause | toggle | next | previous | restart
-ytm shuffle | autoplay           # toggle
+ytm shuffle on | off             # set shuffle explicitly
+ytm autoplay on | off            # set autoplay explicitly
 ytm seek <seconds>
 ytm volume <0-100>
 ytm state      # current state as JSON
@@ -107,8 +108,11 @@ Request:
 {"id": 4, "cmd": "play_item", "args": {"kind": "albums", "key": "/browse/MPREb_VoRIcL5VxmY"}}
 ```
 
-Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle`, `autoplay`, `seek {seconds}`, `volume {level}`,
+Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle {enabled}`, `autoplay {enabled}`, `seek {seconds}`, `volume {level}`,
 `state`, `library {kind}`, `play_item {kind, key}`. `kind` is `playlists` or `albums`.
+
+For `shuffle` and `autoplay`, `enabled` is a boolean. Omitting it toggles the setting, as used by the
+interactive player; the CLI requires `on` or `off`.
 
 `previous` always goes to the previous track. YouTube Music's own Previous button restarts the track when
 you're 5s or more in, so in that case it's pressed twice.
@@ -156,8 +160,7 @@ State:
 - `state` is one of `playing`, `paused`, `buffering`, `ended`.
 - `at` is when `position` was read (epoch ms). While playing, current position is
   `position + (now - at) / 1000`.
-- `liked`, `shuffle` and `autoplay` are `null` if their control can't be found. The `shuffle` and `autoplay`
-  commands toggle them.
+- `liked`, `shuffle` and `autoplay` are `null` if their control can't be found.
 - `queue` is the up next list as YouTube Music shows it, including tracks already played; `current` marks the
   one playing. Autoplay suggestions aren't included.
 - There's no track ID: YouTube Music doesn't expose one in the page. Identify tracks by title, artist and album.

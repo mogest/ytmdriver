@@ -23,17 +23,17 @@ usage: ytm [command [args]]
 With no command, opens the interactive player.
 
 Playback
-  play              start playback; with no YouTube Music tab open, opens music.youtube.com instead
-  pause             pause playback
-  toggle            pause if playing, otherwise play
-  next              skip to the next track
-  previous          go to the previous track, however far into the current one
-  restart           go back to the start of the current track
-  seek <seconds>    jump to that position in the current track, e.g. ytm seek 90
-  volume <0-100>    set the volume
-  shuffle           toggle shuffle
-  autoplay          toggle playing suggested tracks once the queue runs out
-  stop-after        toggle pausing when the current track ends
+  play               start playback; with no YouTube Music tab open, opens music.youtube.com instead
+  pause              pause playback
+  toggle             pause if playing, otherwise play
+  next               skip to the next track
+  previous           go to the previous track, however far into the current one
+  restart            go back to the start of the current track
+  seek <seconds>     jump to that position in the current track, e.g. ytm seek 90
+  volume <0-100>     set the volume
+  shuffle <on|off>   turn shuffle on or off
+  autoplay <on|off>  turn suggested tracks after the queue runs out on or off
+  stop-after         toggle pausing when the current track ends
 
 Library
   playlists         list saved playlists, one per line: title<TAB>subtitle
@@ -146,9 +146,13 @@ func run(args []string) error {
 
 func commandArgs(cmd string, args []string) (map[string]any, error) {
 	switch cmd {
-	case "play", "pause", "toggle", "next", "previous", "restart", "shuffle", "autoplay", "stop-after", "state":
+	case "play", "pause", "toggle", "next", "previous", "restart", "stop-after", "state":
 		if len(args) == 0 {
 			return nil, nil
+		}
+	case "shuffle", "autoplay":
+		if len(args) == 1 && (args[0] == "on" || args[0] == "off") {
+			return map[string]any{"enabled": args[0] == "on"}, nil
 		}
 	case "seek", "volume":
 		if len(args) == 1 {

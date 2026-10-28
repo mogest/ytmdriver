@@ -48,6 +48,13 @@ function pressed(selector: string) {
   return el && el.getAttribute('aria-pressed') === 'true'
 }
 
+// An omitted state keeps the interactive player's toggle behaviour.
+function setPressed(selector: string, enabled: unknown) {
+  if (enabled !== undefined && typeof enabled !== 'boolean') throw new Error('enabled: expected a boolean')
+  const el = find<HTMLElement>(selector)
+  if (enabled === undefined || pressed(selector) !== enabled) el.click()
+}
+
 const playing = () => document.querySelector('ytmusic-miniplayer button[aria-label="Pause"]') !== null
 const position = () => Number(slider('Seek slider').value)
 const title = () => navigator.mediaSession.metadata?.title ?? null
@@ -172,8 +179,8 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
     if (playing()) button('Pause').click()
   },
   toggle: () => button(playing() ? 'Pause' : 'Play').click(),
-  shuffle: () => find<HTMLElement>(SHUFFLE).click(),
-  autoplay: () => find<HTMLElement>(AUTOPLAY).click(),
+  shuffle: ({ enabled }) => setPressed(SHUFFLE, enabled),
+  autoplay: ({ enabled }) => setPressed(AUTOPLAY, enabled),
   'stop-after': () => {
     stopAfter = stopAfter ? null : title()
   },
