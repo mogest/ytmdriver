@@ -13,6 +13,7 @@ export interface State {
   liked: boolean | null
   shuffle: boolean | null
   autoplay: boolean | null
+  stopAfter: boolean
   queue: QueueItem[]
 }
 
@@ -49,6 +50,22 @@ function pressed(selector: string) {
 
 const playing = () => document.querySelector('ytmusic-miniplayer button[aria-label="Pause"]') !== null
 const position = () => Number(slider('Seek slider').value)
+const title = () => navigator.mediaSession.metadata?.title ?? null
+
+// The title of the track to pause at the end of.
+let stopAfter: string | null = null
+// With gapless playback no media event marks a track change, but timeupdate fires a few times a second.
+// The Pause button only appears a moment after the next track starts.
+document.addEventListener(
+  'timeupdate',
+  () => {
+    if (stopAfter && title() !== stopAfter && playing()) {
+      stopAfter = null
+      button('Pause').click()
+    }
+  },
+  true,
+)
 
 // From this far into a track, YouTube Music's Previous button restarts the track instead of going back.
 const PREVIOUS_RESTARTS_AFTER = 5
@@ -156,6 +173,9 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
   toggle: () => button(playing() ? 'Pause' : 'Play').click(),
   shuffle: () => find<HTMLElement>(SHUFFLE).click(),
   autoplay: () => find<HTMLElement>(AUTOPLAY).click(),
+  'stop-after': () => {
+    stopAfter = stopAfter ? null : title()
+  },
   next: () => button('Next').click(),
   previous: async () => {
     if (position() >= PREVIOUS_RESTARTS_AFTER) {
@@ -206,6 +226,7 @@ export function readState(): State {
     liked: pressed('ytmusic-miniplayer button[aria-label^="like this video"]'),
     shuffle: pressed(SHUFFLE),
     autoplay: pressed(AUTOPLAY),
+    stopAfter: stopAfter !== null,
     queue: [...queueItems()].map(item => ({
       title: text(item, '.song-title'),
       artist: text(item, '.byline'),

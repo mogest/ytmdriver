@@ -17,7 +17,7 @@ import (
 )
 
 const usage = `usage: ytc                 open the player
-       ytc play|pause|toggle|next|previous|restart|shuffle|autoplay|state|watch|install|help
+       ytc play|pause|toggle|next|previous|restart|shuffle|autoplay|stop-after|state|watch|install|help
        ytc seek <seconds>
        ytc volume <0-100>
        ytc playlists|albums
@@ -100,7 +100,7 @@ func run(args []string) error {
 
 func commandArgs(cmd string, args []string) (map[string]any, error) {
 	switch cmd {
-	case "play", "pause", "toggle", "next", "previous", "restart", "shuffle", "autoplay", "state":
+	case "play", "pause", "toggle", "next", "previous", "restart", "shuffle", "autoplay", "stop-after", "state":
 		if len(args) == 0 {
 			return nil, nil
 		}

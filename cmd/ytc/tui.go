@@ -14,18 +14,19 @@ import (
 )
 
 type playerState struct {
-	Title    string      `json:"title"`
-	Artist   string      `json:"artist"`
-	Album    string      `json:"album"`
-	State    string      `json:"state"`
-	Position float64     `json:"position"`
-	Duration float64     `json:"duration"`
-	At       int64       `json:"at"`
-	Volume   int         `json:"volume"`
-	Liked    bool        `json:"liked"`
-	Shuffle  bool        `json:"shuffle"`
-	Autoplay bool        `json:"autoplay"`
-	Queue    []queueItem `json:"queue"`
+	Title     string      `json:"title"`
+	Artist    string      `json:"artist"`
+	Album     string      `json:"album"`
+	State     string      `json:"state"`
+	Position  float64     `json:"position"`
+	Duration  float64     `json:"duration"`
+	At        int64       `json:"at"`
+	Volume    int         `json:"volume"`
+	Liked     bool        `json:"liked"`
+	Shuffle   bool        `json:"shuffle"`
+	Autoplay  bool        `json:"autoplay"`
+	StopAfter bool        `json:"stopAfter"`
+	Queue     []queueItem `json:"queue"`
 }
 
 type queueItem struct {
@@ -191,6 +192,8 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		m.send("shuffle", nil)
 	case "a":
 		m.send("autoplay", nil)
+	case "x":
+		m.send("stop-after", nil)
 	case "b":
 		m.browsing = true
 		m.load()
@@ -274,7 +277,7 @@ func (m model) View() tea.View {
 		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
 		lines = append(lines,
 			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", "-/+", "vol"),
-			help("s", "shuffle", "a", "autoplay", "b", "library", "t", "theme", "q", "quit"),
+			help("s", "shuffle", "a", "autoplay", "x", "stop after", "b", "library", "t", "theme", "q", "quit"),
 		)
 	}
 	if m.status != "" {
@@ -298,17 +301,21 @@ func (m model) queueView(rows int) []string {
 	if len(queue) == 0 || shown < 1 {
 		return nil
 	}
-	current := slices.IndexFunc(queue, func(q queueItem) bool { return q.Current })
-	start := max(min(current-2, len(queue)-shown), 0)
-	lines := []string{style.accent.Bold(true).Render(" Queue")}
 	clip := lipgloss.NewStyle().MaxWidth(m.width)
-	for _, q := range queue[start:min(start+shown, len(queue))] {
+	var items []string
+	for _, q := range queue {
 		prefix, title := "   ", style.title.Render(q.Title)
 		if q.Current {
 			prefix, title = style.accent.Render(" ▶ "), style.title.Bold(true).Render(q.Title)
 		}
-		lines = append(lines, clip.Render(prefix+title+"  "+style.sub.Render(q.Artist)+style.faint.Render(" · "+clock(q.Duration))))
+		items = append(items, clip.Render(prefix+title+"  "+style.sub.Render(q.Artist)+style.faint.Render(" · "+clock(q.Duration))))
+		if q.Current && m.state.StopAfter {
+			items = append(items, style.alert.Render("   ─── STOP ───"))
+		}
 	}
+	current := slices.IndexFunc(queue, func(q queueItem) bool { return q.Current })
+	start := max(min(current-2, len(items)-shown), 0)
+	lines := append([]string{style.accent.Bold(true).Render(" Queue")}, items[start:min(start+shown, len(items))]...)
 	return append(lines, "")
 }
 
