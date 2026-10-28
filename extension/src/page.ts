@@ -54,12 +54,13 @@ const title = () => navigator.mediaSession.metadata?.title ?? null
 
 // The title of the track to pause at the end of.
 let stopAfter: string | null = null
-// With gapless playback no media event marks a track change, but timeupdate fires a few times a second.
-// The Pause button only appears a moment after the next track starts.
+// With gapless playback the next track starts without a media event, so the end is caught with timeupdate,
+// which fires a few times a second. If the track changes another way, e.g. Next, the new one is paused once
+// its Pause button appears.
 document.addEventListener(
   'timeupdate',
   () => {
-    if (stopAfter && title() !== stopAfter && playing()) {
+    if (stopAfter && playing() && (title() !== stopAfter || Number(slider('Seek slider').max) - position() < 1)) {
       stopAfter = null
       button('Pause').click()
     }
