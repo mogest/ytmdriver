@@ -13,7 +13,11 @@ type item struct {
 
 // matches reports whether every word of query appears in the item's title or subtitle.
 func (it item) matches(query string) bool {
-	text := strings.ToLower(it.Title + " " + it.Subtitle)
+	return matchesWords(it.Title+" "+it.Subtitle, query)
+}
+
+func matchesWords(text, query string) bool {
+	text = strings.ToLower(text)
 	for _, word := range strings.Fields(strings.ToLower(query)) {
 		if !strings.Contains(text, word) {
 			return false
@@ -43,16 +47,7 @@ func playFromLibrary(kind, query string) error {
 	if err != nil {
 		return err
 	}
-	var found []item
-	for _, it := range items {
-		if strings.EqualFold(it.Title, query) {
-			found = []item{it}
-			break
-		}
-		if it.matches(query) {
-			found = append(found, it)
-		}
-	}
+	found := matchingItems(items, query)
 	switch len(found) {
 	case 0:
 		return fmt.Errorf("nothing in %s matches %q", kind, query)
@@ -65,4 +60,27 @@ func playFromLibrary(kind, query string) error {
 		titles[i] = "  " + it.Title
 	}
 	return fmt.Errorf("%q matches more than one:\n%s", query, strings.Join(titles, "\n"))
+}
+
+// matchingItems returns candidates from the first matching tier: exact title,
+// words in the title, then words in the combined title and subtitle.
+func matchingItems(items []item, query string) []item {
+	var exact, titles, combined []item
+	for _, it := range items {
+		switch {
+		case strings.EqualFold(it.Title, query):
+			exact = append(exact, it)
+		case matchesWords(it.Title, query):
+			titles = append(titles, it)
+		case it.matches(query):
+			combined = append(combined, it)
+		}
+	}
+	if len(exact) > 0 {
+		return exact
+	}
+	if len(titles) > 0 {
+		return titles
+	}
+	return combined
 }

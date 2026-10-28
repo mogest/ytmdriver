@@ -38,8 +38,8 @@ Playback
 Library
   playlists         list saved playlists, one per line: title<TAB>subtitle
   albums            list saved albums, one per line: title<TAB>subtitle
-  playlist <words>  play the playlist titled <words> (any case), or else the only one whose title
-                    and subtitle contain every word; fails listing the candidates if several match
+  playlist <words>  play a matching playlist (any case): exact title first, then every word in
+                    the title, then title and subtitle; lists candidates if the best matches tie
   album <words>     the same, for albums, e.g. ytm album djesse 4
 
   Album commands take the tab to Library > Albums; playback carries on.
