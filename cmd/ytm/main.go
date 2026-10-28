@@ -16,9 +16,9 @@ import (
 	"time"
 )
 
-const usage = `ytc controls YouTube Music playing in a Chrome tab, through the ytchauffeur extension.
+const usage = `ytm controls YouTube Music playing in a Chrome tab, through the ytmdriver extension.
 
-usage: ytc [command [args]]
+usage: ytm [command [args]]
 
 With no command, opens the interactive player.
 
@@ -29,7 +29,7 @@ Playback
   next              skip to the next track
   previous          go to the previous track, however far into the current one
   restart           go back to the start of the current track
-  seek <seconds>    jump to that position in the current track, e.g. ytc seek 90
+  seek <seconds>    jump to that position in the current track, e.g. ytm seek 90
   volume <0-100>    set the volume
   shuffle           toggle shuffle
   autoplay          toggle playing suggested tracks once the queue runs out
@@ -40,7 +40,7 @@ Library
   albums            list saved albums, one per line: title<TAB>subtitle
   playlist <words>  play the playlist titled <words> (any case), or else the only one whose title
                     and subtitle contain every word; fails listing the candidates if several match
-  album <words>     the same, for albums, e.g. ytc album djesse 4
+  album <words>     the same, for albums, e.g. ytm album djesse 4
 
   Album commands take the tab to Library > Albums; playback carries on.
 
@@ -61,13 +61,13 @@ State
                                     including tracks already played; current marks this track
 
 Setup
-  install           register ytc as Chrome's native messaging host; re-run after moving the binary
+  install           register ytm as Chrome's native messaging host; re-run after moving the binary
   help              show this help
 
 Playback commands print nothing and exit once the control has been operated; the change shows up
 in state a moment later. Errors go to stderr with exit status 1, e.g. "no YouTube Music tab open".`
 
-var errUsage = errors.New("unrecognised command or arguments; see ytc help")
+var errUsage = errors.New("unrecognised command or arguments; see ytm help")
 
 var errNoTab = errors.New("no YouTube Music tab open")
 
@@ -87,7 +87,7 @@ func main() {
 		return
 	}
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "ytc:", err)
+		fmt.Fprintln(os.Stderr, "ytm:", err)
 		os.Exit(1)
 	}
 }
@@ -97,7 +97,7 @@ func socketPath() string {
 	if dir == "" {
 		dir = os.TempDir()
 	}
-	return filepath.Join(dir, fmt.Sprintf("ytc-%d.sock", os.Getuid()))
+	return filepath.Join(dir, fmt.Sprintf("ytm-%d.sock", os.Getuid()))
 }
 
 func run(args []string) error {
@@ -203,7 +203,7 @@ func watch() error {
 			continue
 		}
 		if r.Error != "" {
-			fmt.Fprintln(os.Stderr, "ytc:", r.Error)
+			fmt.Fprintln(os.Stderr, "ytm:", r.Error)
 		} else if r.State != nil {
 			fmt.Println(string(r.State))
 		}

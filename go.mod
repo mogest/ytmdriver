@@ -1,4 +1,4 @@
-module github.com/mogest/ytchauffeur
+module github.com/mogest/ytmdriver
 
 go 1.27.3
 

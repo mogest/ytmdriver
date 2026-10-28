@@ -1,9 +1,9 @@
-# ytchauffeur
+# ytmdriver
 
 Control YouTube Music, playing in your normal browser, from the terminal.
 
 ```
-ytc ─unix socket─ ytc host ─native messaging─ extension ─DOM─ music.youtube.com tab
+ytm ─unix socket─ ytm host ─native messaging─ extension ─DOM─ music.youtube.com tab
 ```
 
 The browser does all the playback. The extension operates the player bar's own buttons and sliders, as a person
@@ -23,17 +23,17 @@ Requires Go and Node.
 2. In Chrome, open `chrome://extensions`, turn on Developer mode, click "Load unpacked" and choose
    `extension/dist`. The extension ID is always `bidbhfllonlbjabgdemkdibgdillegmd` (fixed by `key` in the
    manifest).
-3. Build `ytc` and register it as the native messaging host:
+3. Build `ytm` and register it as the native messaging host:
    ```sh
-   go build -o bin/ytc ./cmd/ytc && ./bin/ytc install
+   go build -o bin/ytm ./cmd/ytm && ./bin/ytm install
    ```
-   This writes `com.mogest.ytc.json` into Chrome's `NativeMessagingHosts` directory, pointing at the binary's
+   This writes `com.seriousorange.ytmdriver.json` into Chrome's `NativeMessagingHosts` directory, pointing at the binary's
    absolute path. Re-run it if you move the binary.
-4. Open (or reload) a YouTube Music tab. Chrome starts `ytc` in host mode.
+4. Open (or reload) a YouTube Music tab. Chrome starts `ytm` in host mode.
 
 ## Usage
 
-`ytc` on its own opens the player:
+`ytm` on its own opens the player:
 
 ```
  ▶ Child Song                                          ♡
@@ -48,7 +48,7 @@ Requires Go and Node.
 h/l (or ←/→) seek 10s, -/+ change volume by 5; n/p and ↓/↑ also work for next/previous. It reconnects by itself when
 a YouTube Music tab appears; with none open, space opens one.
 
-`t` cycles through colour themes (terminal, youtube, nord, gruvbox, dracula). The choice is saved in `ytc/theme`
+`t` cycles through colour themes (terminal, youtube, nord, gruvbox, dracula). The choice is saved in `ytm/theme`
 under your user config directory.
 
 `b` opens your library: playlists and albums, with h/l to switch between them, j/k to move, enter to play,
@@ -57,14 +57,14 @@ under your user config directory.
 Commands for scripting:
 
 ```
-ytc play | pause | toggle | next | previous | restart
-ytc shuffle | autoplay           # toggle
-ytc seek <seconds>
-ytc volume <0-100>
-ytc state      # current state as JSON
-ytc watch      # current state, then one JSON line per change
-ytc playlists | albums           # list, tab-separated title and subtitle
-ytc playlist | album <name>      # play; any words that pick out one item, e.g. `ytc album djesse 4`
+ytm play | pause | toggle | next | previous | restart
+ytm shuffle | autoplay           # toggle
+ytm seek <seconds>
+ytm volume <0-100>
+ytm state      # current state as JSON
+ytm watch      # current state, then one JSON line per change
+ytm playlists | albums           # list, tab-separated title and subtitle
+ytm playlist | album <name>      # play; any words that pick out one item, e.g. `ytm album djesse 4`
 ```
 
 Listing or playing albums takes the YouTube Music tab to Library → Albums, since that's the only place albums
@@ -74,7 +74,7 @@ A hidden tab (in the background, or its window minimised or covered) doesn't dra
 the album grid as it draws. So if the tab gets to Albums while hidden, album commands fail until you've looked
 at it once. It stays on Albums afterwards, so after that they work in the background.
 
-With no YouTube Music tab open, `ytc play` opens https://music.youtube.com in your default browser; other
+With no YouTube Music tab open, `ytm play` opens https://music.youtube.com in your default browser; other
 commands fail with `no YouTube Music tab open`.
 
 Chrome won't start media in a tab that hasn't been visible since it loaded, e.g. one restored in the background
@@ -89,11 +89,11 @@ saying so.
   - `content.ts` runs in each YouTube Music tab, executes commands and sends state events.
   - `background.ts` routes commands to the tab that most recently started playing (else the most recently
     opened) and connects to the native host while any YouTube Music tab is open. From the service worker
-    console, `ytc('next')` or `ytc('seek', {seconds: 60})` sends commands directly.
-- **`ytc host`**: launched by Chrome when the first YouTube Music tab opens, exits when the last closes.
-  Listens on `ytc-<uid>.sock` in `$XDG_RUNTIME_DIR`, else `$TMPDIR`. If another host (another browser or
+    console, `ytm('next')` or `ytm('seek', {seconds: 60})` sends commands directly.
+- **`ytm host`**: launched by Chrome when the first YouTube Music tab opens, exits when the last closes.
+  Listens on `ytm-<uid>.sock` in `$XDG_RUNTIME_DIR`, else `$TMPDIR`. If another host (another browser or
   profile) owns the socket, it waits and takes over when that one exits.
-- **`ytc` CLI**: connects to the socket.
+- **`ytm` CLI**: connects to the socket.
 
 ## Protocol
 

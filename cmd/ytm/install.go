@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	hostName    = "com.mogest.ytc"
+	hostName    = "com.seriousorange.ytmdriver"
 	extensionID = "bidbhfllonlbjabgdemkdibgdillegmd"
 )
 
@@ -42,7 +42,7 @@ func install() error {
 
 	manifest, _ := json.MarshalIndent(map[string]any{
 		"name":            hostName,
-		"description":     "ytchauffeur",
+		"description":     "ytmdriver",
 		"path":            exe,
 		"type":            "stdio",
 		"allowed_origins": []string{"chrome-extension://" + extensionID + "/"},

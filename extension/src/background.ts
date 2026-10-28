@@ -23,7 +23,7 @@ function command(request: Command, reply: Reply) {
 
 function connectNative() {
   if (native) return
-  const port = chrome.runtime.connectNative('com.mogest.ytc')
+  const port = chrome.runtime.connectNative('com.seriousorange.ytmdriver')
   port.onMessage.addListener(request => command(request, reply => port.postMessage(reply)))
   port.onDisconnect.addListener(() => {
     console.warn('native host disconnected:', chrome.runtime.lastError?.message)
@@ -54,8 +54,8 @@ chrome.runtime.onConnect.addListener(port => {
   connectNative()
 })
 
-// For testing from the service worker console: ytc('next'), ytc('seek', {seconds: 60})
+// For testing from the service worker console: ytm('next'), ytm('seek', {seconds: 60})
 let debugId = 0
 Object.assign(globalThis, {
-  ytc: (cmd: string, args?: object) => command({ id: `debug${++debugId}`, cmd, args }, console.log),
+  ytm: (cmd: string, args?: object) => command({ id: `debug${++debugId}`, cmd, args }, console.log),
 })

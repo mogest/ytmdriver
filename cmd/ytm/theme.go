@@ -30,7 +30,7 @@ var style = themes[0]
 
 func themePath() string {
 	dir, _ := os.UserConfigDir()
-	return filepath.Join(dir, "ytc", "theme")
+	return filepath.Join(dir, "ytm", "theme")
 }
 
 func themeIndex(name string) int {
