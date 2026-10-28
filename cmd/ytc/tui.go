@@ -251,12 +251,10 @@ func (m model) View() tea.View {
 	} else {
 		s := m.state
 		icon := map[string]string{"playing": "▶", "paused": "⏸", "buffering": "⋯", "ended": "■"}[s.State]
-		heart := "♡"
-		if s.Liked {
-			heart = style.accent.Render("♥")
-		}
 		title := " " + style.accent.Render(icon) + " " + style.title.Bold(true).Render(s.Title)
-		gap := max(m.width-lipgloss.Width(title)-2, 1)
+		if s.Liked {
+			title += "  " + style.accent.Render("♥")
+		}
 
 		position := m.position()
 		times := lipgloss.Width(clock(position)) + lipgloss.Width(clock(s.Duration)) + 5
@@ -266,7 +264,7 @@ func (m model) View() tea.View {
 		}
 
 		lines = []string{
-			title + strings.Repeat(" ", gap) + heart,
+			title,
 			"   " + style.sub.Render(s.Artist) + style.faint.Render(" · ") + style.sub.Render(s.Album),
 			"",
 			"   " + style.sub.Render(clock(position)) + " " + bar(fraction, m.width-times-3) + " " + style.sub.Render(clock(s.Duration)),
