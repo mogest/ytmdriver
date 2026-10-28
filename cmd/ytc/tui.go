@@ -60,14 +60,8 @@ type model struct {
 	filtering bool
 }
 
-var (
-	bold  = lipgloss.NewStyle().Bold(true)
-	faint = lipgloss.NewStyle().Faint(true)
-	red   = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-	green = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-)
-
 func runTUI() error {
+	loadTheme()
 	_, err := tea.NewProgram(model{
 		width:   60,
 		height:  20,
@@ -159,6 +153,10 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 	if key == "ctrl+c" || key == "q" && !m.filtering {
 		return tea.Quit
 	}
+	if key == "t" && !m.filtering {
+		nextTheme()
+		return nil
+	}
 	if m.state == nil {
 		if key == "space" {
 			return func() tea.Msg {
@@ -176,9 +174,9 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 	switch key {
 	case "space":
 		m.send("toggle", nil)
-	case "j", "n":
+	case "j", "n", "down":
 		m.send("next", nil)
-	case "k", "p":
+	case "k", "p", "up":
 		m.send("previous", nil)
 	case "r":
 		m.seek(0)
@@ -238,16 +236,26 @@ func (m model) View() tea.View {
 			"",
 			" No YouTube Music tab — space to open",
 			"",
-			faint.Render(" space open · q quit"),
+			help("space", "open", "q", "quit"),
+		}
+	} else if m.state.Title == "" {
+		lines = []string{
+			"",
+			" " + style.title.Bold(true).Render("Nothing playing"),
+			"   " + style.sub.Render("press ") + style.accent.Render("b") + style.sub.Render(" to pick something from your library"),
+			"",
+			m.settingsView(),
+			"",
+			help("b", "library", "-/+", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
 		}
 	} else {
 		s := m.state
 		icon := map[string]string{"playing": "▶", "paused": "⏸", "buffering": "⋯", "ended": "■"}[s.State]
 		heart := "♡"
 		if s.Liked {
-			heart = "♥"
+			heart = style.accent.Render("♥")
 		}
-		title := " " + icon + " " + bold.Render(s.Title)
+		title := " " + style.accent.Render(icon) + " " + style.title.Bold(true).Render(s.Title)
 		gap := max(m.width-lipgloss.Width(title)-2, 1)
 
 		position := m.position()
@@ -259,25 +267,30 @@ func (m model) View() tea.View {
 
 		lines = []string{
 			title + strings.Repeat(" ", gap) + heart,
-			"   " + faint.Render(s.Artist+" · "+s.Album),
+			"   " + style.sub.Render(s.Artist) + style.faint.Render(" · ") + style.sub.Render(s.Album),
 			"",
-			"   " + clock(position) + " " + bar(fraction, m.width-times-3) + " " + clock(s.Duration),
-			"   vol " + bar(float64(s.Volume)/100, 20) + fmt.Sprintf(" %-3d   ", s.Volume) + toggle("shuffle", s.Shuffle) + "  " + toggle("autoplay", s.Autoplay),
+			"   " + style.sub.Render(clock(position)) + " " + bar(fraction, m.width-times-3) + " " + style.sub.Render(clock(s.Duration)),
+			m.settingsView(),
 			"",
 		}
 		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
 		lines = append(lines,
-			faint.Render(" space play/pause · j/k next/prev · h/l seek · 0-9 jump · -/+ vol"),
-			faint.Render(" s shuffle · a autoplay · b library · q quit"),
+			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", "-/+", "vol"),
+			help("s", "shuffle", "a", "autoplay", "b", "library", "t", "theme", "q", "quit"),
 		)
 	}
 	if m.status != "" {
-		lines = append(lines, red.Render(" "+m.status))
+		lines = append(lines, style.alert.Render(" "+m.status))
 	}
 
 	v := tea.NewView(strings.Join(lines, "\n"))
 	v.AltScreen = true
 	return v
+}
+
+func (m model) settingsView() string {
+	s := m.state
+	return "   " + style.faint.Render("vol") + " " + bar(float64(s.Volume)/100, 20) + style.sub.Render(fmt.Sprintf(" %-3d", s.Volume)) + "   " + toggle("shuffle", s.Shuffle) + "  " + toggle("autoplay", s.Autoplay)
 }
 
 // queueView shows the queue from just before the current track, to fit rows lines.
@@ -289,29 +302,29 @@ func (m model) queueView(rows int) []string {
 	}
 	current := slices.IndexFunc(queue, func(q queueItem) bool { return q.Current })
 	start := max(min(current-2, len(queue)-shown), 0)
-	lines := []string{bold.Render(" Queue")}
+	lines := []string{style.accent.Bold(true).Render(" Queue")}
 	clip := lipgloss.NewStyle().MaxWidth(m.width)
 	for _, q := range queue[start:min(start+shown, len(queue))] {
-		prefix, title := "   ", q.Title
+		prefix, title := "   ", style.title.Render(q.Title)
 		if q.Current {
-			prefix, title = " ▶ ", bold.Render(title)
+			prefix, title = style.accent.Render(" ▶ "), style.title.Bold(true).Render(q.Title)
 		}
-		lines = append(lines, clip.Render(prefix+title+"  "+faint.Render(q.Artist+" · "+clock(q.Duration))))
+		lines = append(lines, clip.Render(prefix+title+"  "+style.sub.Render(q.Artist)+style.faint.Render(" · "+clock(q.Duration))))
 	}
 	return append(lines, "")
 }
 
 func toggle(name string, on bool) string {
 	if on {
-		return green.Render("● " + name + " on")
+		return style.on.Render("● " + name + " on")
 	}
-	return faint.Render("○ " + name + " off")
+	return style.faint.Render("○ " + name + " off")
 }
 
 func bar(fraction float64, width int) string {
 	width = max(width, 1)
 	filled := int(min(max(fraction, 0), 1) * float64(width))
-	return strings.Repeat("━", filled) + faint.Render(strings.Repeat("─", width-filled))
+	return style.accent.Render(strings.Repeat("━", filled)) + style.faint.Render(strings.Repeat("─", width-filled))
 }
 
 func clock(seconds float64) string {

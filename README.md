@@ -45,8 +45,11 @@ Requires Go and Node.
  space play/pause · j/k next/prev · h/l seek · 0-9 jump · -/+ vol · b library · q quit
 ```
 
-h/l (or ←/→) seek 10s, -/+ change volume by 5; n/p also work for next/previous. It reconnects by itself when
+h/l (or ←/→) seek 10s, -/+ change volume by 5; n/p and ↓/↑ also work for next/previous. It reconnects by itself when
 a YouTube Music tab appears; with none open, space opens one.
+
+`t` cycles through colour themes (terminal, youtube, nord, gruvbox, dracula). The choice is saved in `ytc/theme`
+under your user config directory.
 
 `b` opens your library: playlists and albums, with h/l to switch between them, j/k to move, enter to play,
 / to filter, esc to go back.

@@ -71,18 +71,18 @@ func (m model) libraryView() []string {
 	for _, kind := range libraryKinds {
 		name := strings.ToUpper(kind[:1]) + kind[1:]
 		if kind == m.kind {
-			tabs = append(tabs, bold.Render(name))
+			tabs = append(tabs, style.accent.Bold(true).Render(name))
 		} else {
-			tabs = append(tabs, faint.Render(name))
+			tabs = append(tabs, style.faint.Render(name))
 		}
 	}
-	lines := []string{" " + strings.Join(tabs, faint.Render(" · "))}
+	lines := []string{" " + strings.Join(tabs, style.faint.Render(" · "))}
 
 	switch {
 	case m.filtering:
-		lines = append(lines, " /"+m.filter+"█")
+		lines = append(lines, style.accent.Render(" /")+style.title.Render(m.filter)+style.accent.Render("█"))
 	case m.filter != "":
-		lines = append(lines, " /"+m.filter)
+		lines = append(lines, style.accent.Render(" /")+style.title.Render(m.filter))
 	default:
 		lines = append(lines, "")
 	}
@@ -90,25 +90,24 @@ func (m model) libraryView() []string {
 	rows := max(m.height-5, 1)
 	visible := m.visible()
 	if _, loaded := m.items[m.kind]; loaded && len(visible) == 0 {
-		lines = append(lines, faint.Render(" Nothing matches"))
+		lines = append(lines, style.faint.Render(" Nothing matches"))
 	} else if !loaded && slices.Contains(slices.Collect(maps.Values(m.loading)), m.kind) {
-		lines = append(lines, faint.Render(" Loading…"))
+		lines = append(lines, style.faint.Render(" Loading…"))
 	} else if !loaded {
-		lines = append(lines, faint.Render(" Couldn't load"))
+		lines = append(lines, style.faint.Render(" Couldn't load"))
 	}
 	clip := lipgloss.NewStyle().MaxWidth(m.width)
 	start := max(min(m.cursor-rows/2, len(visible)-rows), 0)
 	for i := start; i < min(start+rows, len(visible)); i++ {
-		prefix := "   "
+		prefix, title := "   ", style.title.Render(visible[i].Title)
 		if i == m.cursor {
-			prefix = " ▸ "
+			prefix, title = style.accent.Render(" ▸ "), style.title.Bold(true).Render(visible[i].Title)
 		}
-		lines = append(lines, clip.Render(prefix+visible[i].Title+"  "+faint.Render(visible[i].Subtitle)))
+		lines = append(lines, clip.Render(prefix+title+"  "+style.sub.Render(visible[i].Subtitle)))
 	}
 
-	help := " j/k move · h/l playlists/albums · enter play · / filter · esc back"
 	if m.filtering {
-		help = " ↑/↓ move · enter play · ←/→ playlists/albums · esc clear"
+		return append(lines, "", help("↑/↓", "move", "enter", "play", "←/→", "playlists/albums", "esc", "clear"))
 	}
-	return append(lines, "", faint.Render(help))
+	return append(lines, "", help("j/k", "move", "h/l", "playlists/albums", "enter", "play", "/", "filter", "esc", "back"))
 }
