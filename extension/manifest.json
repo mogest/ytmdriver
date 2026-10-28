@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "ytchauffeur",
+  "version": "0.1.0",
+  "description": "Terminal control for YouTube Music",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqgz1sbiyJVkcPtv0mg2bNM4rftFhAYgL2lXaldFpzMpkstAsSCFWuqQ6kUhKP0yghsSePF84rSVmJxdIS7q4SxJa71ZMlNsvi7/vxpQJdo0JpZtpLFsxfdkfAN6YlBZ8FCG/X9Yzs+GYLIo6I02KMkisy31OI4unn9XOoVVi039yQNpQO2I/N0qWJ9UsjUxKsimtWxvwbxRzZDjl5F+8mNFm5w90rHGkpj7vDSLDbbSXNQuMVipOQj17Ujvqfd8S04+YZ6Fz2vNpTgYwpYCqqB2xFBhfLRGSnw55xP2PhVb2f+81cjDRV4tvtt89XlxqiI+dDhMwztQauYGBUm/WUQIDAQAB",
+  "permissions": ["nativeMessaging"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["https://music.youtube.com/*"], "js": ["content.js"] }]
+}

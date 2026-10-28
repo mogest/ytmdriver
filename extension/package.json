@@ -1,0 +1,14 @@
+{
+  "name": "ytchauffeur-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/background.ts src/content.ts --bundle --outdir=dist && cp manifest.json dist/",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
