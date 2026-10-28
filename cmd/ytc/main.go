@@ -16,12 +16,58 @@ import (
 	"time"
 )
 
-const usage = `usage: ytc                 open the player
-       ytc play|pause|toggle|next|previous|restart|shuffle|autoplay|stop-after|state|watch|install|help
-       ytc seek <seconds>
-       ytc volume <0-100>
-       ytc playlists|albums
-       ytc playlist|album <name>`
+const usage = `ytc controls YouTube Music playing in a Chrome tab, through the ytchauffeur extension.
+
+usage: ytc [command [args]]
+
+With no command, opens the interactive player.
+
+Playback
+  play              start playback; with no YouTube Music tab open, opens music.youtube.com instead
+  pause             pause playback
+  toggle            pause if playing, otherwise play
+  next              skip to the next track
+  previous          go to the previous track, however far into the current one
+  restart           go back to the start of the current track
+  seek <seconds>    jump to that position in the current track, e.g. ytc seek 90
+  volume <0-100>    set the volume
+  shuffle           toggle shuffle
+  autoplay          toggle playing suggested tracks once the queue runs out
+  stop-after        toggle pausing when the current track ends
+
+Library
+  playlists         list saved playlists, one per line: title<TAB>subtitle
+  albums            list saved albums, one per line: title<TAB>subtitle
+  playlist <words>  play the playlist titled <words> (any case), or else the only one whose title
+                    and subtitle contain every word; fails listing the candidates if several match
+  album <words>     the same, for albums, e.g. ytc album djesse 4
+
+  Album commands take the tab to Library > Albums; playback carries on.
+
+State
+  state             print the current state as JSON
+  watch             print the current state, then the new state on each change, one JSON object
+                    per line, until interrupted
+
+  title, artist, album, artworkUrl  the current track
+  state                             playing, paused, buffering or ended
+  position, duration                seconds
+  at                                epoch ms when position was read; while playing, the current
+                                    position is position + (now - at) / 1000
+  volume                            0-100
+  liked, shuffle, autoplay          true or false, or null if the control can't be found
+  stopAfter                         whether stop-after is on
+  queue                             [{title, artist, duration, current}], the up next list
+                                    including tracks already played; current marks this track
+
+Setup
+  install           register ytc as Chrome's native messaging host; re-run after moving the binary
+  help              show this help
+
+Playback commands print nothing and exit once the control has been operated; the change shows up
+in state a moment later. Errors go to stderr with exit status 1, e.g. "no YouTube Music tab open".`
+
+var errUsage = errors.New("unrecognised command or arguments; see ytc help")
 
 var errNoTab = errors.New("no YouTube Music tab open")
 
@@ -60,7 +106,7 @@ func run(args []string) error {
 	}
 	cmd := args[0]
 	switch cmd {
-	case "help":
+	case "help", "-h", "--help":
 		fmt.Println(usage)
 		return nil
 	case "install":
@@ -69,12 +115,12 @@ func run(args []string) error {
 		return watch()
 	case "playlists", "albums":
 		if len(args) != 1 {
-			return errors.New(usage)
+			return errUsage
 		}
 		return listLibrary(cmd)
 	case "playlist", "album":
 		if len(args) < 2 {
-			return errors.New(usage)
+			return errUsage
 		}
 		return playFromLibrary(cmd+"s", strings.Join(args[1:], " "))
 	}
@@ -111,7 +157,7 @@ func commandArgs(cmd string, args []string) (map[string]any, error) {
 			}
 		}
 	}
-	return nil, errors.New(usage)
+	return nil, errUsage
 }
 
 // request sends one command and waits for its reply.
