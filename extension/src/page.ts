@@ -85,6 +85,7 @@ const guideEntries = () => [...document.querySelectorAll('ytmusic-guide-entry-re
 const chipLink = (label: string) =>
   [...document.querySelectorAll('ytmusic-chip-cloud-chip-renderer')].find(c => text(c, 'a') === label)?.querySelector('a')
 const albumCards = () => [...document.querySelectorAll('ytmusic-grid-renderer ytmusic-two-row-item-renderer')]
+const albumsLoader = () => document.querySelector('ytmusic-grid-renderer yt-next-continuation')
 
 const onAlbumsPage = () => location.pathname === '/library/albums'
 
@@ -103,11 +104,12 @@ async function showAlbums() {
   if (document.visibilityState === 'hidden' && !albumsDrawn) {
     throw new Error('albums only load while the YouTube Music tab is visible; switch to it once')
   }
-  let count
-  do {
-    count = albumCards().length
-    await sleep(300)
-  } while (albumCards().length !== count)
+  // The grid loads the next page of albums when its loader scrolls into view, and removes the loader after the last.
+  for (let loader; (loader = albumsLoader()); ) {
+    const count = albumCards().length
+    loader.scrollIntoView()
+    await waitFor(() => albumCards().length > count || !albumsLoader(), 5000)
+  }
 }
 
 async function navigateToAlbums() {
