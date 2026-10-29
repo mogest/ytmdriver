@@ -186,8 +186,8 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		m.seek(m.state.Duration * float64(key[0]-'0') / 10)
 	case "h", "l", "left", "right":
 		m.seek(m.position() + map[string]float64{"h": -10, "left": -10, "l": 10, "right": 10}[key])
-	case "-", "+", "=":
-		m.state.Volume = min(max(m.state.Volume+map[string]int{"-": -5, "+": 5, "=": 5}[key], 0), 100)
+	case "-", ",", "+", "=", ".":
+		m.state.Volume = min(max(m.state.Volume+map[string]int{"-": -5, ",": -5, "+": 5, "=": 5, ".": 5}[key], 0), 100)
 		m.send("volume", map[string]any{"level": m.state.Volume})
 	case "s":
 		m.send("shuffle", nil)
@@ -195,7 +195,7 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		m.send("autoplay", nil)
 	case "x":
 		m.send("stop-after", nil)
-	case "b":
+	case "b", ";":
 		m.browsing = true
 		m.load()
 	case "/":
@@ -248,11 +248,11 @@ func (m model) View() tea.View {
 		lines = []string{
 			"",
 			" " + style.title.Bold(true).Render("Nothing playing"),
-			"   " + style.sub.Render("press ") + style.accent.Render("b") + style.sub.Render(" to pick something from your library"),
+			"   " + style.sub.Render("press ") + style.accent.Render(";") + style.sub.Render(" to pick something from your library"),
 			"",
 			m.settingsView(),
 			"",
-			help("b", "library", "/", "search", "-/+", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
+			help(";", "library", "/", "search", ",/.", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
 		}
 	} else {
 		s := m.state
@@ -279,8 +279,8 @@ func (m model) View() tea.View {
 		}
 		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
 		lines = append(lines,
-			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", "-/+", "vol"),
-			help("s", "shuffle", "a", "autoplay", "x", "stop after", "b", "library", "/", "search", "t", "theme", "q", "quit"),
+			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", ",/.", "vol"),
+			help("s", "shuffle", "a", "autoplay", "x", "stop after", ";", "library", "/", "search", "t", "theme", "q", "quit"),
 		)
 	}
 	if m.status != "" {

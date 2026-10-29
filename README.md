@@ -17,8 +17,8 @@ Use it two ways:
    1:34 ━━━━━━━━━━━━━━━━━━──────────────────────── 5:14
    vol ━━━━━━━━━━━━━━━━━━━━ 100
 
- space play/pause · j/k next/prev · h/l seek · 0-9 jump · -/+ vol
- s shuffle · a autoplay · x stop after · b library · / search · t theme · q quit
+ space play/pause · j/k next/prev · h/l seek · 0-9 jump · ,/. vol
+ s shuffle · a autoplay · x stop after · ; library · / search · t theme · q quit
 ```
 
 ## The website does the playing
@@ -102,11 +102,11 @@ Run `ytm` with no arguments to open the interactive player.
 | `h` / `l` or ← / → | Seek back / forward 10 seconds |
 | `0`–`9` | Jump to 0%–90% of the track |
 | `r` | Restart the track |
-| `-` / `+` | Lower / raise volume by 5 |
+| `,` / `.` | Lower / raise volume by 5 (`-` / `+` also work) |
 | `s` | Toggle shuffle |
 | `a` | Toggle autoplay |
 | `x` | Toggle stop-after |
-| `b` | Open your library |
+| `;` | Open your library (`b` also works) |
 | `/` | Search YouTube Music |
 | `t` | Cycle colour themes |
 | `q` | Quit the terminal player |

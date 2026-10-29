@@ -91,7 +91,7 @@ func (m *model) libraryKey(key, text string) {
 			m.filter += text
 		}
 		m.cursor = 0
-	case key == "esc" || key == "b":
+	case key == "esc" || key == "b" || key == ";":
 		m.browsing = false
 	case key == "/":
 		m.filtering = true
