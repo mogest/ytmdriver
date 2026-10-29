@@ -74,8 +74,8 @@ func TestPlayCommand(t *testing.T) {
 		cmd        string
 	}{
 		{[]string{"pink", "moon"}, []string{"pink", "moon"}, "play_item"},
-		{[]string{"--queue", "--albums", "pink", "moon"}, []string{"--albums", "pink", "moon"}, "queue_item"},
-		{[]string{"--songs", "--queue", "4"}, []string{"--songs", "4"}, "queue_item"},
+		{[]string{"--queue", "--albums", "pink", "moon"}, []string{"--albums", "pink", "moon"}, "queue_result"},
+		{[]string{"4", "--queue"}, []string{"4"}, "queue_result"},
 	}
 	for _, tt := range tests {
 		if cmd, rest := playCommand(tt.args); cmd != tt.cmd || !reflect.DeepEqual(rest, tt.rest) {

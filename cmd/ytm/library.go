@@ -77,7 +77,7 @@ func printResults(items []item, err error) error {
 // playCommand strips a --queue flag, which adds to the end of the queue instead of playing.
 func playCommand(args []string) (string, []string) {
 	if i := slices.Index(args, "--queue"); i >= 0 {
-		return "queue_item", slices.Delete(slices.Clone(args), i, i+1)
+		return "queue_result", slices.Delete(slices.Clone(args), i, i+1)
 	}
 	return "play_item", args
 }

@@ -68,7 +68,7 @@ func (m *model) libraryKey(key, text string) (cmd tea.Cmd) {
 		m.cursor = len(m.visible())
 	case key == "ctrl+enter" && !m.filtering && m.kind == "search":
 		if visible := m.visible(); m.cursor < len(visible) {
-			m.send("queue_item", map[string]any{"kind": m.kind, "key": visible[m.cursor].Key})
+			m.send("queue_result", map[string]any{"key": visible[m.cursor].Key})
 			cmd = m.setStatus("Adding " + visible[m.cursor].Title + " to the queue")
 			m.browsing = false
 		}

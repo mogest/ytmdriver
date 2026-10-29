@@ -267,15 +267,18 @@ async function libraryElement(kind: unknown, key: unknown) {
   return item
 }
 
-// Adding to an empty queue starts playing it.
-async function queueItem(kind: unknown, key: unknown) {
-  const item = await libraryElement(kind, key)
+// Adding to an empty queue starts playing it. Artists have no Add to queue.
+async function queueResult(key: unknown) {
+  const result = await libraryElement('search', key)
   await closeMenu()
-  const menu = item.querySelector<HTMLElement>('button[aria-label="Action menu"]')
+  const menu = result.querySelector<HTMLElement>('button[aria-label="Action menu"]')
   if (!menu) throw new Error(`YouTube Music element not found: menu for ${key}`)
   menu.click()
-  const add = () => visible('ytmusic-menu-popup-renderer #items > *').find(i => i.textContent!.trim() === 'Add to queue') as HTMLElement | undefined
-  await waitFor(() => !!add())
+  const add = () => visible('ytmusic-menu-popup-renderer #items > *').find(i => text(i, '.text') === 'Add to queue') as HTMLElement | undefined
+  await waitFor(() => !!add()).catch(async () => {
+    await closeMenu()
+    throw new Error(`can't add to queue: ${text(result, '.title')}`)
+  })
   const count = toasts().length
   add()!.click()
   await waitFor(() => toasts().length > count, 5000)
@@ -317,7 +320,7 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
     return commands.library({ kind: 'search' })
   },
   save_to_playlist: ({ playlist }) => saveToPlaylist(playlist),
-  queue_item: ({ kind, key }) => queueItem(kind, key),
+  queue_result: ({ key }) => queueResult(key),
   play_item: async ({ kind, key }) => {
     const item = await libraryElement(kind, key)
     const playButton = () => item.querySelector<HTMLElement>('ytmusic-play-button-renderer')
