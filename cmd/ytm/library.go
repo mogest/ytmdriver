@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -31,8 +32,28 @@ func libraryItems(kind string) ([]item, error) {
 	return r.Items, err
 }
 
-func listLibrary(kind string) error {
-	items, err := libraryItems(kind)
+var searchFilters = []string{"songs", "albums", "videos", "playlists"}
+
+// searchArgs splits an optional leading --filter, e.g. --songs, from the words to search for.
+func searchArgs(args []string) (query, filter string, err error) {
+	if len(args) > 0 && strings.HasPrefix(args[0], "--") {
+		filter, args = args[0][2:], args[1:]
+		if !slices.Contains(searchFilters, filter) {
+			return "", "", errUsage
+		}
+	}
+	if len(args) == 0 {
+		return "", "", errUsage
+	}
+	return strings.Join(args, " "), filter, nil
+}
+
+func searchItems(query, filter string) ([]item, error) {
+	r, err := request("search", map[string]any{"query": query, "filter": filter})
+	return r.Items, err
+}
+
+func printItems(items []item, err error) error {
 	if err != nil {
 		return err
 	}
@@ -40,6 +61,41 @@ func listLibrary(kind string) error {
 		fmt.Printf("%s\t%s\n", it.Title, it.Subtitle)
 	}
 	return nil
+}
+
+func printResults(items []item, err error) error {
+	if err != nil {
+		return err
+	}
+	for i, it := range items {
+		fmt.Printf("%d\t%s\t%s\n", i+1, it.Title, it.Subtitle)
+	}
+	return nil
+}
+
+// playResult plays a result already on the search results page, without searching again.
+func playResult(n int) error {
+	items, err := libraryItems("search")
+	if err != nil {
+		return err
+	}
+	if n < 1 || n > len(items) {
+		return fmt.Errorf("no result %d among the %d search results showing", n, len(items))
+	}
+	_, err = request("play_item", map[string]any{"kind": "search", "key": items[n-1].Key})
+	return err
+}
+
+func playSearch(query, filter string) error {
+	items, err := searchItems(query, filter)
+	if err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return fmt.Errorf("nothing found for %q", query)
+	}
+	_, err = request("play_item", map[string]any{"kind": "search", "key": items[0].Key})
+	return err
 }
 
 func playFromLibrary(kind, query string) error {

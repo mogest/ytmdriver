@@ -104,7 +104,7 @@ const queueItems = () =>
 
 const seconds = (clock: string) => clock.split(':').reduce((total, part) => total * 60 + Number(part), 0)
 
-const text = (el: Element, selector: string) => el.querySelector(selector)?.textContent?.trim() ?? ''
+const text = (el: Element, selector: string) => el.querySelector(selector)?.textContent?.trim().replace(/\s+/g, ' ') ?? ''
 
 const guideEntries = () => [...document.querySelectorAll('ytmusic-guide-entry-renderer')]
 const chipLink = (label: string) =>
@@ -150,6 +150,42 @@ async function navigateToAlbums() {
   await waitFor(() => onAlbumsPage() && albumCards().length > 0, 5000)
 }
 
+const SEARCH_RESULTS = 'ytmusic-tabbed-search-results-renderer'
+const visible = (selector: string) => [...document.querySelectorAll(selector)].filter(el => el.checkVisibility())
+
+// The results page reuses its elements for a new search, hiding those it doesn't need, e.g. the songs under an
+// artist when the top result is a song.
+const searchResults = () => visible(`${SEARCH_RESULTS} ytmusic-responsive-list-item-renderer`)
+
+// Search filters and the chips that apply them.
+const SEARCH_FILTERS: Record<string, string> = { songs: 'Songs', albums: 'Albums', videos: 'Videos', playlists: 'Community playlists' }
+const chips = () => [...document.querySelectorAll(`${SEARCH_RESULTS} ytmusic-chip-cloud-chip-renderer`)]
+const selectedChips = () => chips().filter(c => c.hasAttribute('is-selected')).map(c => text(c, 'a'))
+
+async function search(query: unknown, filter: unknown) {
+  if (typeof query !== 'string' || !query.trim()) throw new Error('query: expected some words')
+  const label = filter ? SEARCH_FILTERS[String(filter)] : undefined
+  if (filter && !label) throw new Error(`unknown search filter: ${filter}`)
+
+  const input = find<HTMLInputElement>('ytmusic-search-box input')
+  input.value = query.trim()
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', keyCode: 13, bubbles: true }))
+  // Searching clears the selected chip as the new results arrive.
+  await waitFor(
+    () => new URLSearchParams(location.search).get('q') === input.value && selectedChips().length === 0 && searchResults().length > 0,
+    5000,
+  )
+  if (!label) return
+
+  const chip = chips().find(c => text(c, 'a') === label)?.querySelector('a')
+  if (!chip) throw new Error(`YouTube Music element not found: ${label} chip`)
+  chip.click()
+  // The chip shows as selected straight away; the filtered results are in once they replace the mixed page's
+  // several sections with one.
+  await waitFor(() => selectedChips().join() === label && visible(`${SEARCH_RESULTS} ytmusic-section-list-renderer > #contents > *`).length === 1, 5000)
+}
+
 // Playlists are listed in the sidebar on every page, so need no navigation. They have no link, only a name.
 const library: Record<string, { show?: () => Promise<void>; items: () => Element[]; key: (el: Element) => string }> = {
   playlists: {
@@ -160,6 +196,10 @@ const library: Record<string, { show?: () => Promise<void>; items: () => Element
     show: showAlbums,
     items: albumCards,
     key: card => card.querySelector('a')?.pathname ?? '',
+  },
+  search: {
+    items: searchResults,
+    key: result => result.querySelector('a')?.getAttribute('href') ?? '',
   },
 }
 
@@ -197,8 +237,12 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
   volume: ({ level }) => setRange('Volume', level),
   library: async ({ kind }) => {
     const { source, elements } = await libraryElements(kind)
-    const items: LibraryItem[] = elements.map(el => ({ key: source.key(el), title: text(el, '.title'), subtitle: text(el, '.subtitle') }))
+    const items: LibraryItem[] = elements.map(el => ({ key: source.key(el), title: text(el, '.title'), subtitle: text(el, '.subtitle, .secondary-flex-columns') }))
     return { items }
+  },
+  search: async ({ query, filter }) => {
+    await search(query, filter)
+    return commands.library({ kind: 'search' })
   },
   play_item: async ({ kind, key }) => {
     const { source, elements } = await libraryElements(kind)

@@ -52,13 +52,14 @@ type model struct {
 	status    string
 	statusSeq int
 
-	browsing  bool
-	kind      string
-	items     map[string][]item
-	loading   map[int]string // request id → library kind
-	cursor    int
-	filter    string
-	filtering bool
+	browsing     bool
+	kind         string
+	items        map[string][]item
+	loading      map[int]string // request id → library kind
+	cursor       int
+	filter       string
+	filtering    bool
+	searchFilter string
 }
 
 func runTUI() error {
@@ -197,6 +198,8 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 	case "b":
 		m.browsing = true
 		m.load()
+	case "/":
+		m.browsing, m.kind, m.filtering, m.cursor = true, "search", true, 0
 	}
 	return nil
 }
@@ -249,7 +252,7 @@ func (m model) View() tea.View {
 			"",
 			m.settingsView(),
 			"",
-			help("b", "library", "-/+", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
+			help("b", "library", "/", "search", "-/+", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
 		}
 	} else {
 		s := m.state
@@ -277,7 +280,7 @@ func (m model) View() tea.View {
 		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
 		lines = append(lines,
 			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", "-/+", "vol"),
-			help("s", "shuffle", "a", "autoplay", "x", "stop after", "b", "library", "t", "theme", "q", "quit"),
+			help("s", "shuffle", "a", "autoplay", "x", "stop after", "b", "library", "/", "search", "t", "theme", "q", "quit"),
 		)
 	}
 	if m.status != "" {

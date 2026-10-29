@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -43,5 +44,26 @@ func TestMatchingItems(t *testing.T) {
 				t.Fatalf("matchingItems(%q) keys = %v, want %v", tt.query, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSearchArgs(t *testing.T) {
+	tests := []struct {
+		args          []string
+		query, filter string
+	}{
+		{[]string{"pink", "moon"}, "pink moon", ""},
+		{[]string{"--albums", "ok", "computer"}, "ok computer", "albums"},
+	}
+	for _, tt := range tests {
+		query, filter, err := searchArgs(tt.args)
+		if query != tt.query || filter != tt.filter || err != nil {
+			t.Errorf("searchArgs(%q) = %q, %q, %v", tt.args, query, filter, err)
+		}
+	}
+	for _, args := range [][]string{nil, {"--songs"}, {"--artists", "nick", "drake"}} {
+		if _, _, err := searchArgs(args); !errors.Is(err, errUsage) {
+			t.Errorf("searchArgs(%q): got %v, want usage error", args, err)
+		}
 	}
 }

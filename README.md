@@ -18,7 +18,7 @@ Use it two ways:
    vol ━━━━━━━━━━━━━━━━━━━━ 100
 
  space play/pause · j/k next/prev · h/l seek · 0-9 jump · -/+ vol
- s shuffle · a autoplay · x stop after · b library · t theme · q quit
+ s shuffle · a autoplay · x stop after · b library · / search · t theme · q quit
 ```
 
 ## The website does the playing
@@ -44,6 +44,7 @@ ytmdriver is an independent project and isn't endorsed by YouTube.
 
 - **Stay on the keyboard.** Play, pause, skip, seek and adjust volume from an interactive terminal player.
 - **Pick something from your library.** Browse and filter saved playlists and albums, or play one by name.
+- **Find anything else.** Search YouTube Music from the player or the command line.
 - **Make it yours.** Choose terminal, YouTube, Nord, Gruvbox or Dracula colours.
 - **Connect your tools.** Use individual commands for shortcuts, JSON state for status bars, and a live
   stream of updates for scripts.
@@ -106,11 +107,14 @@ Run `ytm` with no arguments to open the interactive player.
 | `a` | Toggle autoplay |
 | `x` | Toggle stop-after |
 | `b` | Open your library |
+| `/` | Search YouTube Music |
 | `t` | Cycle colour themes |
 | `q` | Quit the terminal player |
 
-In the library, use `h` / `l` to switch between playlists and albums, `j` / `k` to move,
-Enter to play, `/` to filter, and Esc to go back. Your theme choice is saved in `ytm/theme`
+In the library, use `h` / `l` to switch between playlists, albums and search, `j` / `k` to move,
+Enter to play, `/` to filter, and Esc to go back. On the search tab, type your search and press Enter;
+`/` edits the search. Ctrl-S, Ctrl-A, Ctrl-V and Ctrl-P show only songs, albums, videos or playlists,
+also while typing; pressing the same one again shows all results. Your theme choice is saved in `ytm/theme`
 under your user config directory.
 
 The player reconnects automatically when a YouTube Music tab appears. With no tab open,
@@ -127,6 +131,10 @@ ytm shuffle on             # enable shuffle (or use off to disable)
 ytm autoplay off           # disable suggested tracks after the queue ends
 ytm album djesse 4         # play a saved album by name
 ytm playlist favourites    # play a saved playlist by name
+ytm search nick drake      # list numbered search results
+ytm play-result 4          # play the 4th of them
+ytm play pink moon         # play the first search result
+ytm search --albums ok computer   # only albums (or --songs, --videos, --playlists)
 ytm stop-after             # toggle pausing at the end of this track
 ytm state                  # current player state as JSON
 ytm watch                  # initial state, then one JSON object per update
@@ -135,6 +143,7 @@ ytm watch                  # initial state, then one JSON object per update
 | Command | What it does |
 | --- | --- |
 | `play`, `pause`, `toggle` | Control playback |
+| `play [--filter] <words>` | Search and play the first result |
 | `next`, `previous`, `restart` | Change tracks or restart the current one |
 | `seek <seconds>` | Seek to an absolute position in the track |
 | `volume <0-100>` | Set volume |
@@ -142,6 +151,8 @@ ytm watch                  # initial state, then one JSON object per update
 | `stop-after` | Toggle pausing at the end of the current track |
 | `playlists`, `albums` | List saved items as tab-separated title and subtitle |
 | `playlist <words>`, `album <words>` | Play a matching library item |
+| `search [--filter] <words>` | List search results as tab-separated number, title and subtitle; `--songs`, `--albums`, `--videos` or `--playlists` shows only those |
+| `play-result <n>` | Play a result of the last search, while the tab still shows them |
 | `state`, `watch` | Read player state once or follow updates |
 | `help` | Show command help |
 
@@ -164,6 +175,9 @@ Because ytmdriver works through the website, it follows the website's behaviour:
   playback. If the tab is hidden, switch to it once so YouTube Music can draw the album grid.
   It stays on Albums afterwards, allowing subsequent commands to work in the background.
   Playlists are read from the sidebar and don't need navigation.
+- **Searches use the search box.** They type into YouTube Music's search box and read the results page,
+  leaving the tab there. Results only include rows such as songs, albums and videos, not the top
+  result's card itself.
 - **Page changes can affect controls.** The extension depends on YouTube Music's page structure and
   English control labels. A missing-element error identifies the selector it couldn't find.
 
@@ -191,10 +205,13 @@ Request:
 {"id": 2, "cmd": "volume", "args": {"level": 60}}
 {"id": 3, "cmd": "library", "args": {"kind": "albums"}}
 {"id": 4, "cmd": "play_item", "args": {"kind": "albums", "key": "/browse/MPREb_VoRIcL5VxmY"}}
+{"id": 5, "cmd": "search", "args": {"query": "nick drake", "filter": "albums"}}
 ```
 
 Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle {enabled}`, `autoplay {enabled}`, `stop-after`, `seek {seconds}`, `volume {level}`,
-`state`, `library {kind}`, `play_item {kind, key}`. `kind` is `playlists` or `albums`.
+`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`. `kind` is `playlists`, `albums` or
+`search`; `search` results are those on the results page, so play them before searching again. A search's
+optional `filter` is `songs`, `albums`, `videos` or `playlists`, selecting that chip on the results page.
 
 For `shuffle` and `autoplay`, `enabled` is a boolean. Omitting it toggles the setting, as used by the
 interactive player; the CLI requires `on` or `off`.
@@ -211,7 +228,7 @@ Response:
 ```
 
 `ok: true` means the control was operated; the resulting change arrives as an event. Only `state` returns
-state, and only `library` returns items. An item's `key` is opaque: pass it back to `play_item`. Request ids
+state, and only `library` and `search` return items. An item's `key` is opaque: pass it back to `play_item`. Request ids
 are per connection; the host keeps them from colliding between clients.
 
 Events go to every connected client, on track, play/pause, volume or like changes, on seek, and every 15s
