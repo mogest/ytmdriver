@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -16,6 +17,10 @@ var searchFilterChoices = append([]string{""}, searchFilters...)
 var searchFilterKeys = map[string]string{"ctrl+s": "songs", "ctrl+a": "albums", "ctrl+v": "videos", "ctrl+p": "playlists"}
 
 func (m *model) load() {
+	if m.kind == "save" {
+		m.loading[m.send("library", map[string]any{"kind": "playlists"})] = m.kind
+		return
+	}
 	if m.kind == "search" {
 		if m.filter != "" {
 			m.loading[m.send("search", map[string]any{"query": m.filter, "filter": m.searchFilter})] = m.kind
@@ -39,7 +44,15 @@ func (m model) visible() []item {
 	return visible
 }
 
-func (m *model) libraryKey(key, text string) {
+// selectRecent puts the cursor on the playlist last saved to.
+func (m *model) selectRecent() {
+	recent := readConfig("playlist")
+	if i := slices.IndexFunc(m.visible(), func(it item) bool { return it.Key == recent }); i >= 0 {
+		m.cursor = i
+	}
+}
+
+func (m *model) libraryKey(key, text string) (cmd tea.Cmd) {
 	switch {
 	case key == "up" || key == "k" && !m.filtering:
 		m.cursor--
@@ -57,12 +70,18 @@ func (m *model) libraryKey(key, text string) {
 		m.filtering, m.cursor = false, 0
 		m.load()
 	case key == "enter":
-		if visible := m.visible(); m.cursor < len(visible) {
+		if visible := m.visible(); m.cursor < len(visible) && m.kind == "save" {
+			playlist := visible[m.cursor]
+			m.send("save_to_playlist", map[string]any{"playlist": playlist.Key})
+			writeConfig("playlist", playlist.Key)
+			cmd = m.setStatus("Saving to " + playlist.Title)
+			m.browsing = false
+		} else if m.cursor < len(visible) {
 			m.send("play_item", map[string]any{"kind": m.kind, "key": visible[m.cursor].Key})
 			m.browsing = false
 		}
 		m.filtering, m.filter, m.cursor = false, "", 0
-	case key == "tab" || key == "right" || key == "left" || (key == "l" || key == "h") && !m.filtering:
+	case m.kind != "save" && (key == "tab" || key == "right" || key == "left" || (key == "l" || key == "h") && !m.filtering):
 		step := 1
 		if key == "left" || key == "h" {
 			step = len(libraryKinds) - 1
@@ -97,6 +116,7 @@ func (m *model) libraryKey(key, text string) {
 		m.filtering = true
 	}
 	m.cursor = min(max(m.cursor, 0), max(len(m.visible())-1, 0))
+	return cmd
 }
 
 func (m model) rows() int {
@@ -105,7 +125,9 @@ func (m model) rows() int {
 
 func (m model) libraryView() []string {
 	header := " " + choices(libraryKinds, m.kind)
-	if m.kind == "search" {
+	if m.kind == "save" {
+		header = " " + style.accent.Bold(true).Render("Save to playlist") + "  " + style.sub.Render(m.state.Title)
+	} else if m.kind == "search" {
 		header += "    " + choices(searchFilterChoices, m.searchFilter)
 	}
 	lines := []string{header}
@@ -139,6 +161,10 @@ func (m model) libraryView() []string {
 	}
 
 	switch {
+	case m.kind == "save" && m.filtering:
+		return append(lines, "", help("↑/↓", "move", "pgup/pgdn", "page", "enter", "save", "esc", "clear"))
+	case m.kind == "save":
+		return append(lines, "", help("j/k", "move", "^b/^f", "page", "enter", "save", "/", "filter", "esc", "back"))
 	case m.filtering && m.kind == "search":
 		return append(lines, "", help("enter", "search", "^s/^a/^v/^p", "songs/albums/videos/playlists", "esc", "clear"))
 	case m.filtering:

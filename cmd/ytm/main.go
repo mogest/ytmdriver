@@ -47,6 +47,8 @@ Library
                     --songs, --albums, --videos or --playlists first shows only those, e.g.
                     ytm search --albums ok computer
   play-result <n>   play result n of the last search, while the tab still shows its results
+  save <words>      save the current track to a matching playlist, matched like playlist; with
+                    no words, to the playlist last saved to
 
   Album commands take the tab to Library > Albums, and searches to the results page; playback
   carries on.
@@ -140,6 +142,8 @@ func run(args []string) error {
 			return errUsage
 		}
 		return playResult(n)
+	case "save":
+		return saveToPlaylist(strings.Join(args[1:], " "))
 	case "playlist", "album":
 		if len(args) < 2 {
 			return errUsage

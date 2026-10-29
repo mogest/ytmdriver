@@ -125,6 +125,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(m.loading, msg.ID)
 			if msg.Error == "" {
 				m.items[kind] = msg.Items
+				if kind == "save" {
+					m.selectRecent()
+				}
 			}
 		}
 		if msg.State != nil {
@@ -169,8 +172,7 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		return nil
 	}
 	if m.browsing {
-		m.libraryKey(key, msg.Text)
-		return nil
+		return m.libraryKey(key, msg.Text)
 	}
 
 	switch key {
@@ -178,7 +180,7 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		m.send("toggle", nil)
 	case "j", "n", "down":
 		m.send("next", nil)
-	case "k", "p", "up":
+	case "k", "up":
 		m.send("previous", nil)
 	case "r":
 		m.seek(0)
@@ -197,9 +199,16 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 		m.send("stop-after", nil)
 	case "b", ";":
 		m.browsing = true
+		if m.kind == "save" {
+			m.kind, m.filter, m.cursor = "playlists", "", 0
+		}
 		m.load()
 	case "/":
 		m.browsing, m.kind, m.filtering, m.cursor = true, "search", true, 0
+	case "p":
+		m.browsing, m.kind, m.filter, m.filtering, m.cursor = true, "save", "", false, 0
+		m.selectRecent()
+		m.load()
 	}
 	return nil
 }
@@ -280,7 +289,7 @@ func (m model) View() tea.View {
 		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
 		lines = append(lines,
 			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", ",/.", "vol"),
-			help("s", "shuffle", "a", "autoplay", "x", "stop after", ";", "library", "/", "search", "t", "theme", "q", "quit"),
+			help("s", "shuffle", "a", "autoplay", "x", "stop after", "p", "save", ";", "library", "/", "search", "t", "theme", "q", "quit"),
 		)
 	}
 	if m.status != "" {

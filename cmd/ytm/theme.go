@@ -28,9 +28,19 @@ var themes = []theme{
 
 var style = themes[0]
 
-func themePath() string {
+func configPath(name string) string {
 	dir, _ := os.UserConfigDir()
-	return filepath.Join(dir, "ytm", "theme")
+	return filepath.Join(dir, "ytm", name)
+}
+
+func readConfig(name string) string {
+	value, _ := os.ReadFile(configPath(name))
+	return strings.TrimSpace(string(value))
+}
+
+func writeConfig(name, value string) {
+	os.MkdirAll(filepath.Dir(configPath(name)), 0o755)
+	os.WriteFile(configPath(name), []byte(value+"\n"), 0o644)
 }
 
 func themeIndex(name string) int {
@@ -38,16 +48,14 @@ func themeIndex(name string) int {
 }
 
 func loadTheme() {
-	name, _ := os.ReadFile(themePath())
-	if i := themeIndex(strings.TrimSpace(string(name))); i >= 0 {
+	if i := themeIndex(readConfig("theme")); i >= 0 {
 		style = themes[i]
 	}
 }
 
 func nextTheme() {
 	style = themes[(themeIndex(style.name)+1)%len(themes)]
-	os.MkdirAll(filepath.Dir(themePath()), 0o755)
-	os.WriteFile(themePath(), []byte(style.name+"\n"), 0o644)
+	writeConfig("theme", style.name)
 }
 
 // help renders key/description pairs.

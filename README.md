@@ -18,7 +18,7 @@ Use it two ways:
    vol ━━━━━━━━━━━━━━━━━━━━ 100
 
  space play/pause · j/k next/prev · h/l seek · 0-9 jump · ,/. vol
- s shuffle · a autoplay · x stop after · ; library · / search · t theme · q quit
+ s shuffle · a autoplay · x stop after · p save · ; library · / search · t theme · q quit
 ```
 
 ## The website does the playing
@@ -98,7 +98,7 @@ Run `ytm` with no arguments to open the interactive player.
 | Key | Action |
 | --- | --- |
 | Space | Play / pause |
-| `j` / `k` or ↓ / ↑ | Next / previous track (`n` / `p` also work) |
+| `j` / `k` or ↓ / ↑ | Next / previous track (`n` also works) |
 | `h` / `l` or ← / → | Seek back / forward 10 seconds |
 | `0`–`9` | Jump to 0%–90% of the track |
 | `r` | Restart the track |
@@ -106,6 +106,7 @@ Run `ytm` with no arguments to open the interactive player.
 | `s` | Toggle shuffle |
 | `a` | Toggle autoplay |
 | `x` | Toggle stop-after |
+| `p` | Save the current track to a playlist |
 | `;` | Open your library (`b` also works) |
 | `/` | Search YouTube Music |
 | `t` | Cycle colour themes |
@@ -116,6 +117,11 @@ Enter to play, `/` to filter, and Esc to go back. On the search tab, type your s
 `/` edits the search. Ctrl-S, Ctrl-A, Ctrl-V and Ctrl-P show only songs, albums, videos or playlists,
 also while typing; pressing the same one again shows all results. Your theme choice is saved in `ytm/theme`
 under your user config directory.
+
+`p` lists your playlists with the one you last saved to already selected, so `p` then Enter saves there
+again; `j` / `k` and `/` pick another. The list is the sidebar's, which only gains new playlists when the
+tab reloads, and includes ones YouTube Music won't let you add to, such as other people's. The last
+playlist is kept in `ytm/playlist`.
 
 The player reconnects automatically when a YouTube Music tab appears. With no tab open,
 Space opens the site in your default browser; use Chrome for the extension to connect.
@@ -151,6 +157,7 @@ ytm watch                  # initial state, then one JSON object per update
 | `stop-after` | Toggle pausing at the end of the current track |
 | `playlists`, `albums` | List saved items as tab-separated title and subtitle |
 | `playlist <words>`, `album <words>` | Play a matching library item |
+| `save [words]` | Save the current track to a matching playlist, or the last one saved to |
 | `search [--filter] <words>` | List search results as tab-separated number, title and subtitle; `--songs`, `--albums`, `--videos` or `--playlists` shows only those |
 | `play-result <n>` | Play a result of the last search, while the tab still shows them |
 | `state`, `watch` | Read player state once or follow updates |
@@ -209,9 +216,12 @@ Request:
 ```
 
 Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle {enabled}`, `autoplay {enabled}`, `stop-after`, `seek {seconds}`, `volume {level}`,
-`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`. `kind` is `playlists`, `albums` or
+`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`, `save_to_playlist {playlist}`. `kind` is `playlists`, `albums` or
 `search`; `search` results are those on the results page, so play them before searching again. A search's
 optional `filter` is `songs`, `albums`, `videos` or `playlists`, selecting that chip on the results page.
+`save_to_playlist` saves the current track to the playlist with that title, a `playlists` item's `key`. After
+the first save, YouTube Music's Save to playlist saves straight to the last playlist used; for another
+playlist the command presses Change, which moves the track.
 
 For `shuffle` and `autoplay`, `enabled` is a boolean. Omitting it toggles the setting, as used by the
 interactive player; the CLI requires `on` or `off`.

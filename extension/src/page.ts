@@ -186,6 +186,56 @@ async function search(query: unknown, filter: unknown) {
   await waitFor(() => selectedChips().join() === label && visible(`${SEARCH_RESULTS} ytmusic-section-list-renderer > #contents > *`).length === 1, 5000)
 }
 
+const playlistOptions = () => visible('ytmusic-add-to-playlist-renderer ytmusic-playlist-add-to-option-renderer')
+const menuOpen = () => visible('ytmusic-menu-popup-renderer').length > 0
+// Each notification adds a toast, and old ones linger.
+const toasts = () => document.querySelectorAll('tp-yt-paper-toast')
+const latestToast = () => toasts()[toasts().length - 1]
+const toastText = () => latestToast().textContent!.trim().replace(/\s+/g, ' ')
+
+// A menu stays open behind the dialog it opens, and its items do nothing once used. Escape closes the frontmost
+// menu or toast.
+async function closeMenu() {
+  for (let i = 0; i < 5 && menuOpen(); i++) {
+    const focused = document.activeElement ?? document.body
+    focused.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', keyCode: 27, bubbles: true, composed: true }))
+    await sleep(300)
+  }
+}
+
+// The player bar's Save to playlist opens a dialog of playlists the first time. After that, for another track, it
+// saves straight to the last playlist used and offers Change, which undoes that and opens the dialog.
+async function saveToPlaylist(playlist: unknown) {
+  if (!title()) throw new Error('nothing playing')
+  await closeMenu()
+  button('MORE').click()
+  const save = () => visible('ytmusic-menu-popup-renderer #items > *').find(i => text(i, 'a') === 'Save to playlist')?.querySelector('a')
+  await waitFor(() => !!save())
+  const saved = `Saved to ${playlist} Change`
+  let count = toasts().length
+  save()!.click()
+  await waitFor(() => playlistOptions().length > 0 || toasts().length > count, 5000)
+  if (!playlistOptions().length) {
+    if (toastText() === saved) return closeMenu()
+    const change = latestToast().querySelector<HTMLElement>('#action-button button')
+    if (change?.textContent!.trim() !== 'Change') throw new Error(toastText())
+    // Pressed straight away, Change doesn't undo the save; two seconds later it does.
+    await sleep(2000)
+    change.click()
+    await waitFor(() => playlistOptions().length > 0, 5000)
+  }
+  const option = playlistOptions().find(o => text(o, '#title') === playlist)
+  if (!option) {
+    find<HTMLElement>('ytmusic-add-to-playlist-renderer button[aria-label="Dismiss"]').click()
+    throw new Error(`can't save to playlist: ${playlist}`)
+  }
+  count = toasts().length
+  option.querySelector<HTMLElement>('button')!.click()
+  await waitFor(() => toasts().length > count, 5000)
+  if (toastText() !== saved) throw new Error(toastText().replace(/ Add anyway$/, ''))
+  await closeMenu()
+}
+
 // Playlists are listed in the sidebar on every page, so need no navigation. They have no link, only a name.
 const library: Record<string, { show?: () => Promise<void>; items: () => Element[]; key: (el: Element) => string }> = {
   playlists: {
@@ -244,6 +294,7 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
     await search(query, filter)
     return commands.library({ kind: 'search' })
   },
+  save_to_playlist: ({ playlist }) => saveToPlaylist(playlist),
   play_item: async ({ kind, key }) => {
     const { source, elements } = await libraryElements(kind)
     const item = elements.find(el => source.key(el) === key)

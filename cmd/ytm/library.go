@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -103,19 +104,51 @@ func playFromLibrary(kind, query string) error {
 	if err != nil {
 		return err
 	}
+	it, err := pick(items, kind, query)
+	if err != nil {
+		return err
+	}
+	_, err = request("play_item", map[string]any{"kind": kind, "key": it.Key})
+	return err
+}
+
+// saveToPlaylist saves the current track to the playlist matching query, or with no query, the one last saved to.
+func saveToPlaylist(query string) error {
+	playlist := readConfig("playlist")
+	if query != "" {
+		items, err := libraryItems("playlists")
+		if err != nil {
+			return err
+		}
+		it, err := pick(items, "playlists", query)
+		if err != nil {
+			return err
+		}
+		playlist = it.Key
+	} else if playlist == "" {
+		return errors.New("no playlist saved to yet; name one")
+	}
+	if _, err := request("save_to_playlist", map[string]any{"playlist": playlist}); err != nil {
+		return err
+	}
+	writeConfig("playlist", playlist)
+	return nil
+}
+
+// pick returns the one item matching query, or an error listing the candidates if the best matches tie.
+func pick(items []item, where, query string) (item, error) {
 	found := matchingItems(items, query)
 	switch len(found) {
 	case 0:
-		return fmt.Errorf("nothing in %s matches %q", kind, query)
+		return item{}, fmt.Errorf("nothing in %s matches %q", where, query)
 	case 1:
-		_, err := request("play_item", map[string]any{"kind": kind, "key": found[0].Key})
-		return err
+		return found[0], nil
 	}
 	titles := make([]string, len(found))
 	for i, it := range found {
 		titles[i] = "  " + it.Title
 	}
-	return fmt.Errorf("%q matches more than one:\n%s", query, strings.Join(titles, "\n"))
+	return item{}, fmt.Errorf("%q matches more than one:\n%s", query, strings.Join(titles, "\n"))
 }
 
 // matchingItems returns candidates from the first matching tier: exact title,
