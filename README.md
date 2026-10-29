@@ -114,7 +114,8 @@ Run `ytm` with no arguments to open the interactive player.
 
 In the library, use `h` / `l` to switch between playlists, albums and search, `j` / `k` to move,
 Enter to play, `/` to filter, and Esc to go back. On the search tab, type your search and press Enter;
-`/` edits the search. Ctrl-S, Ctrl-A, Ctrl-V and Ctrl-P show only songs, albums, videos or playlists,
+`/` edits the search, and Ctrl-Enter adds the selected result to the end of the queue. Ctrl-Enter needs a
+terminal that reports it separately from Enter, such as kitty, Ghostty or WezTerm. Ctrl-S, Ctrl-A, Ctrl-V and Ctrl-P show only songs, albums, videos or playlists,
 also while typing; pressing the same one again shows all results. Your theme choice is saved in `ytm/theme`
 under your user config directory.
 
@@ -140,6 +141,7 @@ ytm playlist favourites    # play a saved playlist by name
 ytm search nick drake      # list numbered search results
 ytm play-result 4          # play the 4th of them
 ytm play pink moon         # play the first search result
+ytm play --queue pink moon # add it to the end of the queue instead
 ytm search --albums ok computer   # only albums (or --songs, --videos, --playlists)
 ytm stop-after             # toggle pausing at the end of this track
 ytm state                  # current player state as JSON
@@ -149,7 +151,7 @@ ytm watch                  # initial state, then one JSON object per update
 | Command | What it does |
 | --- | --- |
 | `play`, `pause`, `toggle` | Control playback |
-| `play [--filter] <words>` | Search and play the first result |
+| `play [--queue] [--filter] <words>` | Search and play the first result; `--queue` adds it to the end of the queue |
 | `next`, `previous`, `restart` | Change tracks or restart the current one |
 | `seek <seconds>` | Seek to an absolute position in the track |
 | `volume <0-100>` | Set volume |
@@ -159,7 +161,7 @@ ytm watch                  # initial state, then one JSON object per update
 | `playlist <words>`, `album <words>` | Play a matching library item |
 | `save [words]` | Save the current track to a matching playlist, or the last one saved to |
 | `search [--filter] <words>` | List search results as tab-separated number, title and subtitle; `--songs`, `--albums`, `--videos` or `--playlists` shows only those |
-| `play-result <n>` | Play a result of the last search, while the tab still shows them |
+| `play-result [--queue] <n>` | Play, or add to the queue, a result of the last search, while the tab still shows them |
 | `state`, `watch` | Read player state once or follow updates |
 | `help` | Show command help |
 
@@ -216,9 +218,10 @@ Request:
 ```
 
 Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle {enabled}`, `autoplay {enabled}`, `stop-after`, `seek {seconds}`, `volume {level}`,
-`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`, `save_to_playlist {playlist}`. `kind` is `playlists`, `albums` or
+`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`, `queue_item {kind, key}`, `save_to_playlist {playlist}`. `kind` is `playlists`, `albums` or
 `search`; `search` results are those on the results page, so play them before searching again. A search's
 optional `filter` is `songs`, `albums`, `videos` or `playlists`, selecting that chip on the results page.
+`queue_item` adds a `search` result to the end of the queue, which starts it playing if the queue is empty.
 `save_to_playlist` saves the current track to the playlist with that title, a `playlists` item's `key`. After
 the first save, YouTube Music's Save to playlist saves straight to the last playlist used; for another
 playlist the command presses Change, which moves the track.

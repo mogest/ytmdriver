@@ -67,3 +67,19 @@ func TestSearchArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestPlayCommand(t *testing.T) {
+	tests := []struct {
+		args, rest []string
+		cmd        string
+	}{
+		{[]string{"pink", "moon"}, []string{"pink", "moon"}, "play_item"},
+		{[]string{"--queue", "--albums", "pink", "moon"}, []string{"--albums", "pink", "moon"}, "queue_item"},
+		{[]string{"--songs", "--queue", "4"}, []string{"--songs", "4"}, "queue_item"},
+	}
+	for _, tt := range tests {
+		if cmd, rest := playCommand(tt.args); cmd != tt.cmd || !reflect.DeepEqual(rest, tt.rest) {
+			t.Errorf("playCommand(%q) = %q, %q", tt.args, cmd, rest)
+		}
+	}
+}

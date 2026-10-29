@@ -66,6 +66,13 @@ func (m *model) libraryKey(key, text string) (cmd tea.Cmd) {
 		m.cursor = 0
 	case key == "G" && !m.filtering:
 		m.cursor = len(m.visible())
+	case key == "ctrl+enter" && !m.filtering && m.kind == "search":
+		if visible := m.visible(); m.cursor < len(visible) {
+			m.send("queue_item", map[string]any{"kind": m.kind, "key": visible[m.cursor].Key})
+			cmd = m.setStatus("Adding " + visible[m.cursor].Title + " to the queue")
+			m.browsing = false
+		}
+		m.filter, m.cursor = "", 0
 	case key == "enter" && m.filtering && m.kind == "search":
 		m.filtering, m.cursor = false, 0
 		m.load()
@@ -170,7 +177,7 @@ func (m model) libraryView() []string {
 	case m.filtering:
 		return append(lines, "", help("↑/↓", "move", "pgup/pgdn", "page", "enter", "play", "tab", "switch", "esc", "clear"))
 	case m.kind == "search":
-		return append(lines, "", help("j/k", "move", "^b/^f", "page", "h/l", "switch", "enter", "play", "/", "search", "^s/^a/^v/^p", "filter", "esc", "back"))
+		return append(lines, "", help("j/k", "move", "^b/^f", "page", "h/l", "switch", "enter", "play", "^enter", "queue", "/", "search", "^s/^a/^v/^p", "filter", "esc", "back"))
 	}
 	return append(lines, "", help("j/k", "move", "^b/^f", "page", "h/l", "switch", "enter", "play", "/", "filter", "esc", "back"))
 }

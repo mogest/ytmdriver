@@ -25,7 +25,8 @@ With no command, opens the interactive player.
 Playback
   play               start playback; with no YouTube Music tab open, opens music.youtube.com instead
   play <words>       search YouTube Music and play the first result, e.g. ytm play pyramid song;
-                     takes the same filters as search
+                     takes the same filters as search; --queue adds it to the end of the queue
+                     instead, e.g. ytm play --queue --albums pink moon
   pause              pause playback
   toggle             pause if playing, otherwise play
   next               skip to the next track
@@ -46,7 +47,8 @@ Library
   search <words>    search YouTube Music, listing results one per line: number<TAB>title<TAB>subtitle;
                     --songs, --albums, --videos or --playlists first shows only those, e.g.
                     ytm search --albums ok computer
-  play-result <n>   play result n of the last search, while the tab still shows its results
+  play-result <n>   play result n of the last search, while the tab still shows its results;
+                    --queue adds it to the end of the queue instead
   save <words>      save the current track to a matching playlist, matched like playlist; with
                     no words, to the playlist last saved to
 
@@ -134,14 +136,15 @@ func run(args []string) error {
 		}
 		return printResults(searchItems(query, filter))
 	case "play-result":
-		if len(args) != 2 {
+		play, args := playCommand(args[1:])
+		if len(args) != 1 {
 			return errUsage
 		}
-		n, err := strconv.Atoi(args[1])
+		n, err := strconv.Atoi(args[0])
 		if err != nil {
 			return errUsage
 		}
-		return playResult(n)
+		return playResult(play, n)
 	case "save":
 		return saveToPlaylist(strings.Join(args[1:], " "))
 	case "playlist", "album":
@@ -151,11 +154,12 @@ func run(args []string) error {
 		return playFromLibrary(cmd+"s", strings.Join(args[1:], " "))
 	case "play":
 		if len(args) > 1 {
-			query, filter, err := searchArgs(args[1:])
+			play, args := playCommand(args[1:])
+			query, filter, err := searchArgs(args)
 			if err != nil {
 				return err
 			}
-			return playSearch(query, filter)
+			return playSearch(play, query, filter)
 		}
 	}
 

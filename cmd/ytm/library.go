@@ -74,8 +74,16 @@ func printResults(items []item, err error) error {
 	return nil
 }
 
+// playCommand strips a --queue flag, which adds to the end of the queue instead of playing.
+func playCommand(args []string) (string, []string) {
+	if i := slices.Index(args, "--queue"); i >= 0 {
+		return "queue_item", slices.Delete(slices.Clone(args), i, i+1)
+	}
+	return "play_item", args
+}
+
 // playResult plays a result already on the search results page, without searching again.
-func playResult(n int) error {
+func playResult(cmd string, n int) error {
 	items, err := libraryItems("search")
 	if err != nil {
 		return err
@@ -83,11 +91,11 @@ func playResult(n int) error {
 	if n < 1 || n > len(items) {
 		return fmt.Errorf("no result %d among the %d search results showing", n, len(items))
 	}
-	_, err = request("play_item", map[string]any{"kind": "search", "key": items[n-1].Key})
+	_, err = request(cmd, map[string]any{"kind": "search", "key": items[n-1].Key})
 	return err
 }
 
-func playSearch(query, filter string) error {
+func playSearch(cmd, query, filter string) error {
 	items, err := searchItems(query, filter)
 	if err != nil {
 		return err
@@ -95,7 +103,7 @@ func playSearch(query, filter string) error {
 	if len(items) == 0 {
 		return fmt.Errorf("nothing found for %q", query)
 	}
-	_, err = request("play_item", map[string]any{"kind": "search", "key": items[0].Key})
+	_, err = request(cmd, map[string]any{"kind": "search", "key": items[0].Key})
 	return err
 }
 

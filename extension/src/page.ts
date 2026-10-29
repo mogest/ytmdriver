@@ -260,6 +260,28 @@ async function libraryElements(kind: unknown) {
   return { source, elements: source.items() }
 }
 
+async function libraryElement(kind: unknown, key: unknown) {
+  const { source, elements } = await libraryElements(kind)
+  const item = elements.find(el => source.key(el) === key)
+  if (!item) throw new Error(`not found in ${kind}: ${key}`)
+  return item
+}
+
+// Adding to an empty queue starts playing it.
+async function queueItem(kind: unknown, key: unknown) {
+  const item = await libraryElement(kind, key)
+  await closeMenu()
+  const menu = item.querySelector<HTMLElement>('button[aria-label="Action menu"]')
+  if (!menu) throw new Error(`YouTube Music element not found: menu for ${key}`)
+  menu.click()
+  const add = () => visible('ytmusic-menu-popup-renderer #items > *').find(i => i.textContent!.trim() === 'Add to queue') as HTMLElement | undefined
+  await waitFor(() => !!add())
+  const count = toasts().length
+  add()!.click()
+  await waitFor(() => toasts().length > count, 5000)
+  if (!toastText().endsWith('added to queue')) throw new Error(toastText())
+}
+
 export const commands: Record<string, (args: Record<string, unknown>) => unknown> = {
   state: () => ({ state: readState() }),
   play: () => {
@@ -295,10 +317,9 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
     return commands.library({ kind: 'search' })
   },
   save_to_playlist: ({ playlist }) => saveToPlaylist(playlist),
+  queue_item: ({ kind, key }) => queueItem(kind, key),
   play_item: async ({ kind, key }) => {
-    const { source, elements } = await libraryElements(kind)
-    const item = elements.find(el => source.key(el) === key)
-    if (!item) throw new Error(`not found in ${kind}: ${key}`)
+    const item = await libraryElement(kind, key)
     const playButton = () => item.querySelector<HTMLElement>('ytmusic-play-button-renderer')
     // The album grid only adds Play buttons to cards once the page has scrolled near them.
     if (!playButton()) {
