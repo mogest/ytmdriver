@@ -106,9 +106,11 @@ const seconds = (clock: string) => clock.split(':').reduce((total, part) => tota
 
 const text = (el: Element, selector: string) => el.querySelector(selector)?.textContent?.trim().replace(/\s+/g, ' ') ?? ''
 
+const visible = (selector: string) => [...document.querySelectorAll(selector)].filter(el => el.checkVisibility())
+
 const guideEntries = () => [...document.querySelectorAll('ytmusic-guide-entry-renderer')]
 const chipLink = (label: string) =>
-  [...document.querySelectorAll('ytmusic-chip-cloud-chip-renderer')].find(c => text(c, 'a') === label)?.querySelector('a')
+  visible('ytmusic-browse-response ytmusic-chip-cloud-chip-renderer').find(c => text(c, 'a') === label)?.querySelector('a')
 const albumCards = () => [...document.querySelectorAll('ytmusic-grid-renderer ytmusic-two-row-item-renderer')]
 const albumsLoader = () => document.querySelector('ytmusic-grid-renderer yt-next-continuation')
 
@@ -151,7 +153,6 @@ async function navigateToAlbums() {
 }
 
 const SEARCH_RESULTS = 'ytmusic-tabbed-search-results-renderer'
-const visible = (selector: string) => [...document.querySelectorAll(selector)].filter(el => el.checkVisibility())
 
 // The results page reuses its elements for a new search, hiding those it doesn't need, e.g. the songs under an
 // artist when the top result is a song.
