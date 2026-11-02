@@ -112,6 +112,8 @@ Run `ytm` with no arguments to open the interactive player.
 | `t` | Cycle colour themes |
 | `q` | Quit the terminal player |
 
+Click a track in the queue to play it, click or drag the seek or volume bar to set it, and click shuffle or autoplay to toggle it.
+
 In the library, use `h` / `l` to switch between playlists, albums and search, `j` / `k` to move,
 Enter to play, `/` to filter, and Esc to go back. On the search tab, type your search and press Enter;
 `/` edits the search. Ctrl-S, Ctrl-A, Ctrl-V and Ctrl-P show only songs, albums, videos or playlists,
@@ -220,11 +222,12 @@ Request:
 ```
 
 Commands: `play`, `pause`, `toggle`, `next`, `previous`, `restart`, `shuffle {enabled}`, `autoplay {enabled}`, `stop-after`, `seek {seconds}`, `volume {level}`,
-`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`, `queue_result {key}`, `save_to_playlist {playlist}`. `kind` is `playlists`, `albums` or
+`state`, `library {kind}`, `search {query, filter}`, `play_item {kind, key}`, `queue_result {key}`, `play_queue_item {index, title}`, `save_to_playlist {playlist}`. `kind` is `playlists`, `albums` or
 `search`; `search` results are those on the results page, so play them before searching again. A search's
 optional `filter` is `songs`, `albums`, `videos` or `playlists`, selecting that chip on the results page.
 `queue_result` adds a `search` item to the end of the queue, which starts it playing if the queue is empty.
 Artists can't be queued.
+`play_queue_item` plays the track at that index in `state`'s `queue`, if its title still matches.
 `save_to_playlist` saves the current track to the playlist with that title, a `playlists` item's `key`. After
 the first save, YouTube Music's Save to playlist saves straight to the last playlist used; for another
 playlist the command presses Change, which moves the track.

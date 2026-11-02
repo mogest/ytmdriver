@@ -7,7 +7,7 @@ let port: chrome.runtime.Port
 let last: State | undefined
 
 // Chrome won't start media in a tab that hasn't been visible since it loaded.
-const STARTS_MEDIA = ['play', 'toggle', 'seek', 'restart', 'next', 'previous', 'play_item']
+const STARTS_MEDIA = ['play', 'toggle', 'seek', 'restart', 'next', 'previous', 'play_item', 'play_queue_item']
 let shown = document.visibilityState === 'visible'
 document.addEventListener('visibilitychange', () => (shown ||= document.visibilityState === 'visible'))
 

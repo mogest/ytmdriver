@@ -52,6 +52,8 @@ type model struct {
 	status    string
 	statusSeq int
 
+	dragging int // the line of the bar being dragged, or 0
+
 	browsing     bool
 	kind         string
 	items        map[string][]item
@@ -149,8 +151,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		return m, m.key(msg)
+
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft && m.showingPlayer() {
+			m.click(msg.X, msg.Y)
+		}
+
+	case tea.MouseMotionMsg:
+		if msg.Button == tea.MouseLeft && m.dragging != 0 && m.showingPlayer() {
+			m.drag(msg.X)
+		}
+
+	case tea.MouseReleaseMsg:
+		m.dragging = 0
 	}
 	return m, nil
+}
+
+func (m *model) click(x, y int) {
+	m.dragging = 0
+	if y == seekLine || y == volumeLine {
+		if start, width := m.bar(y); x >= start && x < start+width {
+			m.dragging = y
+			m.drag(x)
+			return
+		}
+	}
+	if _, at := m.settingsView(); y == volumeLine && x < len(at) && at[x] != "" {
+		m.send(at[x], nil)
+		return
+	}
+	top := len(m.playerView())
+	_, at := m.queueView(top)
+	if row := y - top; row >= 0 && row < len(at) && at[row] >= 0 {
+		m.send("play_queue_item", map[string]any{"index": at[row], "title": m.state.Queue[at[row]].Title})
+	}
 }
 
 func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
@@ -189,8 +224,7 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 	case "h", "l", "left", "right":
 		m.seek(m.position() + map[string]float64{"h": -10, "left": -10, "l": 10, "right": 10}[key])
 	case "-", ",", "+", "=", ".":
-		m.state.Volume = min(max(m.state.Volume+map[string]int{"-": -5, ",": -5, "+": 5, "=": 5, ".": 5}[key], 0), 100)
-		m.send("volume", map[string]any{"level": m.state.Volume})
+		m.setVolume(m.state.Volume + map[string]int{"-": -5, ",": -5, "+": 5, "=": 5, ".": 5}[key])
 	case "s":
 		m.send("shuffle", nil)
 	case "a":
@@ -216,6 +250,24 @@ func (m *model) key(msg tea.KeyPressMsg) tea.Cmd {
 func (m *model) seek(seconds float64) {
 	m.state.Position, m.state.At = max(seconds, 0), time.Now().UnixMilli()
 	m.send("seek", map[string]any{"seconds": m.state.Position})
+}
+
+// drag sets the dragged bar from x, which may have strayed off either end.
+func (m *model) drag(x int) {
+	start, width := m.bar(m.dragging)
+	if width < 1 {
+		return
+	}
+	if m.dragging == seekLine {
+		m.seek(m.state.Duration * float64(min(max(x-start, 0), width-1)) / float64(width))
+	} else {
+		m.setVolume((x - start + 1) * 100 / width)
+	}
+}
+
+func (m *model) setVolume(level int) {
+	m.state.Volume = min(max(level, 0), 100)
+	m.send("volume", map[string]any{"level": m.state.Volume})
 }
 
 func (m *model) send(cmd string, args map[string]any) int {
@@ -253,40 +305,21 @@ func (m model) View() tea.View {
 			"",
 			help("space", "open", "q", "quit"),
 		}
-	} else if m.state.Title == "" {
+	} else if !m.showingPlayer() {
+		settings, _ := m.settingsView()
 		lines = []string{
 			"",
 			" " + style.title.Bold(true).Render("Nothing playing"),
 			"   " + style.sub.Render("press ") + style.accent.Render(";") + style.sub.Render(" to pick something from your library"),
 			"",
-			m.settingsView(),
+			settings,
 			"",
 			help(";", "library", "/", "search", ",/.", "vol", "s", "shuffle", "a", "autoplay", "t", "theme", "q", "quit"),
 		}
 	} else {
-		s := m.state
-		icon := map[string]string{"playing": "▶", "paused": "⏸", "buffering": "⋯", "ended": "■"}[s.State]
-		title := " " + style.accent.Render(icon) + " " + style.title.Bold(true).Render(s.Title)
-		if s.Liked {
-			title += "  " + style.accent.Render("♥")
-		}
-
-		position := m.position()
-		times := lipgloss.Width(clock(position)) + lipgloss.Width(clock(s.Duration)) + 5
-		fraction := 0.0
-		if s.Duration > 0 {
-			fraction = position / s.Duration
-		}
-
-		lines = []string{
-			title,
-			"   " + style.sub.Render(s.Artist) + style.faint.Render(" · ") + style.sub.Render(s.Album),
-			"",
-			"   " + style.sub.Render(clock(position)) + " " + bar(fraction, m.width-times-3) + " " + style.sub.Render(clock(s.Duration)),
-			m.settingsView(),
-			"",
-		}
-		lines = append(lines, m.queueView(m.height-len(lines)-3)...)
+		lines = m.playerView()
+		queue, _ := m.queueView(len(lines))
+		lines = append(lines, queue...)
 		lines = append(lines,
 			help("space", "play/pause", "j/k", "next/prev", "h/l", "seek", "0-9", "jump", ",/.", "vol"),
 			help("s", "shuffle", "a", "autoplay", "x", "stop after", "p", "save", ";", "library", "/", "search", "t", "theme", "q", "quit"),
@@ -298,37 +331,97 @@ func (m model) View() tea.View {
 
 	v := tea.NewView(strings.Join(lines, "\n"))
 	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
 	return v
 }
 
-func (m model) settingsView() string {
-	s := m.state
-	return "   " + style.faint.Render("vol") + " " + bar(float64(s.Volume)/100, 20) + style.sub.Render(fmt.Sprintf(" %-3d", s.Volume)) + "   " + toggle("shuffle", s.Shuffle) + "  " + toggle("autoplay", s.Autoplay)
+func (m model) showingPlayer() bool {
+	return m.state != nil && !m.browsing && m.state.Title != ""
 }
 
-// queueView shows the queue from just before the current track, to fit rows lines.
-func (m model) queueView(rows int) []string {
+func (m model) playerView() []string {
+	s := m.state
+	icon := map[string]string{"playing": "▶", "paused": "⏸", "buffering": "⋯", "ended": "■"}[s.State]
+	title := " " + style.accent.Render(icon) + " " + style.title.Bold(true).Render(s.Title)
+	if s.Liked {
+		title += "  " + style.accent.Render("♥")
+	}
+
+	position := m.position()
+	_, seekWidth := m.bar(seekLine)
+	settings, _ := m.settingsView()
+	fraction := 0.0
+	if s.Duration > 0 {
+		fraction = position / s.Duration
+	}
+
+	return []string{
+		title,
+		"   " + style.sub.Render(s.Artist) + style.faint.Render(" · ") + style.sub.Render(s.Album),
+		"",
+		"   " + style.sub.Render(clock(position)) + " " + bar(fraction, seekWidth) + " " + style.sub.Render(clock(s.Duration)),
+		settings,
+		"",
+	}
+}
+
+// The lines of playerView that hold the seek and volume bars.
+const seekLine, volumeLine = 3, 4
+
+const volumeBarWidth = 20
+
+// bar is where the bar on that line sits; the seek bar is between the position and duration.
+func (m model) bar(line int) (start, width int) {
+	if line == volumeLine {
+		return 7, volumeBarWidth
+	}
+	start = 4 + lipgloss.Width(clock(m.position()))
+	return start, m.width - start - 4 - lipgloss.Width(clock(m.state.Duration))
+}
+
+// settingsView also returns the command clicking each column sends, or "".
+func (m model) settingsView() (line string, at []string) {
+	s := m.state
+	add := func(text, cmd string) {
+		line += text
+		at = append(at, slices.Repeat([]string{cmd}, lipgloss.Width(text))...)
+	}
+	add("   "+style.faint.Render("vol")+" "+bar(float64(s.Volume)/100, volumeBarWidth)+style.sub.Render(fmt.Sprintf(" %-3d", s.Volume))+"   ", "")
+	add(toggle("shuffle", s.Shuffle), "shuffle")
+	add("  ", "")
+	add(toggle("autoplay", s.Autoplay), "autoplay")
+	return line, at
+}
+
+// queueView shows the queue from just before the current track, to fit below top lines and above the help and
+// status lines. at holds the index in the queue of each line's track, or -1.
+func (m model) queueView(top int) (lines []string, at []int) {
 	queue := m.state.Queue
-	shown := rows - 2 // heading and blank line
+	shown := m.height - top - 5 // help and status lines, heading and blank line
 	if len(queue) == 0 || shown < 1 {
-		return nil
+		return nil, nil
 	}
 	clip := lipgloss.NewStyle().MaxWidth(m.width)
 	var items []string
-	for _, q := range queue {
+	var indexes []int
+	for i, q := range queue {
 		prefix, title := "   ", style.title.Render(q.Title)
 		if q.Current {
 			prefix, title = style.accent.Render(" ▶ "), style.title.Bold(true).Render(q.Title)
 		}
 		items = append(items, clip.Render(prefix+title+"  "+style.sub.Render(q.Artist)+style.faint.Render(" · "+clock(q.Duration))))
+		indexes = append(indexes, i)
 		if q.Current && m.state.StopAfter {
 			items = append(items, style.alert.Render("   ─── STOP ───"))
+			indexes = append(indexes, -1)
 		}
 	}
 	current := slices.IndexFunc(queue, func(q queueItem) bool { return q.Current })
 	start := max(min(current-2, len(items)-shown), 0)
-	lines := append([]string{style.accent.Bold(true).Render(" Queue")}, items[start:min(start+shown, len(items))]...)
-	return append(lines, "")
+	end := min(start+shown, len(items))
+	lines = append([]string{style.accent.Bold(true).Render(" Queue")}, items[start:end]...)
+	at = append([]int{-1}, indexes[start:end]...)
+	return append(lines, ""), at
 }
 
 func toggle(name string, on bool) string {

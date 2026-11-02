@@ -285,6 +285,15 @@ async function queueResult(key: unknown) {
   if (!toastText().endsWith('added to queue')) throw new Error(toastText())
 }
 
+// The title guards against the queue having changed since the caller read it.
+function playQueueItem(index: unknown, title: unknown) {
+  const item = queueItems()[Number(index)]
+  if (!item || text(item, '.song-title') !== title) throw new Error(`not in the queue: ${title}`)
+  const play = item.querySelector<HTMLElement>('ytmusic-play-button-renderer')
+  if (!play) throw new Error(`YouTube Music element not found: play button for ${title}`)
+  play.click()
+}
+
 export const commands: Record<string, (args: Record<string, unknown>) => unknown> = {
   state: () => ({ state: readState() }),
   play: () => {
@@ -321,6 +330,7 @@ export const commands: Record<string, (args: Record<string, unknown>) => unknown
   },
   save_to_playlist: ({ playlist }) => saveToPlaylist(playlist),
   queue_result: ({ key }) => queueResult(key),
+  play_queue_item: ({ index, title }) => playQueueItem(index, title),
   play_item: async ({ kind, key }) => {
     const item = await libraryElement(kind, key)
     const playButton = () => item.querySelector<HTMLElement>('ytmusic-play-button-renderer')
